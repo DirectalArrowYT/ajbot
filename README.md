@@ -29,6 +29,21 @@ Without the GUI: `python tools/doctor.py` prints the same checklist and
 Setup page > **Update now**, or `python tools/update.py`. It runs `git pull`
 and fetches a newer GUI and game files from the latest release.
 
+## Training your own model
+
+Everything needed to train is in this repo; it runs on your own PC.
+
+1. Record matches: start `python bot/record.py` (or **Record me** on the Play page)
+   and play normally. Each match lands in `runs/`. Bot-vs-bot matches from
+   the Play page are saved to `botruns/` and are used too.
+2. Run `training\retrain.bat`. It digests the recordings, mines combos and
+   fits a new `models/policy.pkl` (a few minutes once the caches are warm).
+   The previous model is moved to `models/prev/`, so a worse retrain can be
+   undone. Flags are passed on to `training/train.py`, e.g.
+   `training\retrain.bat --cherrypick` for the slower, more careful fit.
+3. Compare them: `python bot/play2.py --model-b models/prev/<file>` runs the
+   new policy against the old one.
+
 ## Machine settings
 
 Training servers and unusual game paths live in `ajbot_local.json`, which

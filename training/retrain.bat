@@ -4,14 +4,14 @@ cd /d "%~dp0.."
 
 REM Retrain the policy from every recording on disk and save it to models\.
 REM
-REM   trainingetrain.bat                 cherry-picked bot runs + all human runs (quick:
+REM   training\retrain.bat                 cherry-picked bot runs + all human runs (quick:
 REM                               fits the usual winning models, ~2 min once caches are warm)
-REM   trainingetrain.bat --cherrypick    the same, but compares every candidate model on a
+REM   training\retrain.bat --cherrypick    the same, but compares every candidate model on a
 REM                               held-out match first (slow; run now and then)
-REM   trainingetrain.bat --cherrypick --no-cache   rebuild every feature cache from scratch
-REM   trainingetrain.bat --cherrypick all      filter the human runs too
-REM   trainingetrain.bat --cherrypick off      old behaviour, every tick trained on
-REM   trainingetrain.bat --mode frames         label every tick, not just changes
+REM   training\retrain.bat --cherrypick --no-cache   rebuild every feature cache from scratch
+REM   training\retrain.bat --cherrypick all      filter the human runs too
+REM   training\retrain.bat --cherrypick off      old behaviour, every tick trained on
+REM   training\retrain.bat --mode frames         label every tick, not just changes
 REM
 REM Anything passed in is handed straight to train.py, so its flags all work
 REM (--min-damage, --top-frac, --lead-s, --runs, --no-cache ...).
