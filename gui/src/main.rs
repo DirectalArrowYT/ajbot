@@ -19,6 +19,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod charts;
+mod combos;
 mod hookpipe;
 mod record_control;
 mod runner;
@@ -294,6 +295,8 @@ pub(crate) struct Job {
     pub label: String,
     /// Re-run the Setup checks once the list finishes.
     pub recheck: bool,
+    /// Extra environment for the process.
+    pub env: Vec<(String, String)>,
 }
 
 /// The notation preview: ajbot.notation's parse of the text box, done by the
@@ -325,6 +328,8 @@ struct Saved {
     busy: bool,
     loaded: bool,
     note: Option<String>,
+    /// The last save / delete: (message, ok).
+    flash: Option<(String, bool)>,
 }
 
 #[derive(Clone)]
@@ -446,14 +451,22 @@ struct App {
     preview_edit: Option<Instant>,
     saved: std::sync::Arc<std::sync::Mutex<Saved>>,
     saved_pick: Option<String>,
+    /// Combos page: list every character's saved combos, not just the picked one's.
+    combo_all_chars: bool,
+    /// Combos page: the saved combo whose Delete is waiting for a yes.
+    combo_confirm_delete: Option<String>,
     setup: setup::Shared,
     game_dir_input: String,
     jobs: VecDeque<Job>,
     jobs_recheck: bool,
-    /// Training servers from ajbot_local.json (Train page shown when any).
+    /// Training servers from ajbot_local.json (the Train page's Server tab).
     servers: Vec<String>,
     train_host: String,
     train_args: String,
+    /// Train page: false = This PC, true = Server.
+    train_on_server: bool,
+    /// Flags for training\retrain.bat on this PC (empty = its quick default).
+    local_train_args: String,
 }
 
 impl App {
@@ -510,6 +523,8 @@ impl App {
             preview_edit: Some(Instant::now()),
             saved: Default::default(),
             saved_pick: None,
+            combo_all_chars: false,
+            combo_confirm_delete: None,
             setup: Default::default(),
             game_dir_input: String::new(),
             jobs: VecDeque::new(),
@@ -517,6 +532,8 @@ impl App {
             train_host: servers.first().cloned().unwrap_or_default(),
             servers,
             train_args: "--cherrypick --quick".into(),
+            train_on_server: false,
+            local_train_args: String::new(),
         };
         // AJBOT_GUI_PAGE=play|combos|stats|train|settings|setup opens that page.
         if let Ok(pg) = std::env::var("AJBOT_GUI_PAGE") {
@@ -556,7 +573,7 @@ impl App {
     fn next_job(&mut self, prev: Option<runner::Log>) -> bool {
         let Some(j) = self.jobs.pop_front() else { return false };
         self.jobs_recheck |= j.recheck;
-        match Runner::start_plain(&j.program, &self.dir(), &j.args, &j.label) {
+        match Runner::start_plain(&j.program, &self.dir(), &j.args, &j.env, &j.label) {
             Ok(r) => {
                 if let Some(prev) = prev {
                     let old: Vec<String> = prev.lock().unwrap().iter().cloned().collect();
@@ -1613,235 +1630,6 @@ impl App {
         self.save_settings();
     }
 
-    fn ui_saved_combos(&mut self, ui: &mut egui::Ui, running: bool) {
-        if !self.saved.lock().unwrap().loaded {
-            self.refresh_saved(ui.ctx(), false);
-        }
-        let routes = self.saved.lock().unwrap().routes.clone();
-        ui.strong("Saved combos");
-        ui.horizontal(|ui| {
-            let shown = self.saved_pick.as_deref()
-                .and_then(|n| routes.iter().find(|r| r.name == n))
-                .map(|r| format!("{} - {}", display(&r.char_), r.name))
-                .unwrap_or_else(|| if routes.is_empty() { "(none saved yet)".into() }
-                                   else { "pick a saved combo".into() });
-            egui::ComboBox::from_id_salt("saved_combo")
-                .selected_text(shown)
-                .width(420.0)
-                .height(400.0)
-                .show_ui(ui, |ui| {
-                    for r in &routes {
-                        let rate = if r.attempts > 0 {
-                            format!("  ({}/{} landed)", r.landed, r.attempts)
-                        } else {
-                            "  (not practised)".into()
-                        };
-                        let t = format!("{} - {}{}", display(&r.char_), r.name, rate);
-                        ui.selectable_value(&mut self.saved_pick, Some(r.name.clone()), t);
-                    }
-                });
-            let tip = if self.settings.combo_on_box {
-                "Re-read this folder's saved combos, after copying in the box's"
-            } else {
-                "Re-read this folder's saved combos (models/demo_routes.json)"
-            };
-            if ui.button("↻").on_hover_text(tip).clicked() {
-                let from_box = self.settings.combo_on_box;
-                self.refresh_saved(ui.ctx(), from_box);
-            }
-            let pick = self.saved_pick.as_deref()
-                .and_then(|n| routes.iter().find(|r| r.name == n)).cloned();
-            ui.add_enabled_ui(pick.is_some(), |ui| {
-                if ui.button("Load").on_hover_text(
-                    "Put it in the form below: its character, notation and name, \
-                     so you can read the steps or practise it again").clicked() {
-                    if let Some(r) = &pick {
-                        self.settings.combo_char = r.char_.clone();
-                        self.settings.combo_name = r.name.clone();
-                        if let Some(n) = &r.notation {
-                            self.settings.combo_text = n.clone();
-                            self.preview_edit = Some(Instant::now());
-                        }
-                        self.save_settings();
-                    }
-                }
-            });
-            ui.add_enabled_ui(pick.is_some() && !running, |ui| {
-                if ui.button(egui::RichText::new("▶ Watch").strong()).on_hover_text(
-                    "Play it with the timing practice learned - nothing is tuned or saved. \
-                     Pick \"This PC's game\" under Run on to see it.").clicked() {
-                    if let Some(r) = &pick {
-                        self.watch_saved(r);
-                    }
-                }
-            });
-            ui.add(egui::DragValue::new(&mut self.settings.combo_watch).range(1..=100));
-            ui.label("times");
-        });
-        let sv = self.saved.lock().unwrap();
-        if let Some(e) = &sv.error {
-            ui.colored_label(egui::Color32::from_rgb(230, 120, 90), e);
-        }
-        if let Some(n) = &sv.note {
-            ui.label(egui::RichText::new(n).weak());
-        }
-        if let Some(r) = self.saved_pick.as_deref().and_then(|n| sv.routes.iter().find(|r| r.name == n)) {
-            let mut t = format!("{} steps", r.steps);
-            if let Some(n) = &r.notation {
-                t += &format!(" · {n}");
-            }
-            if !r.learned {
-                t += " · no learned timing yet (plays the default gaps)";
-            }
-            ui.label(egui::RichText::new(t).weak());
-        }
-    }
-
-    fn ui_combos(&mut self, ui: &mut egui::Ui) {
-        let running = self.runner.is_some() || self.native_recorder.is_some();
-        ui.heading(egui::RichText::new("Combo tester").color(ORANGE));
-        ui.label("Write a combo the way players do. The bot walks up to a standing dummy on the \
-                  gym and repeats it, tuning the timing of each step, until it lands it.");
-        ui.add_space(6.0);
-        self.ui_saved_combos(ui, running);
-        ui.add_space(10.0);
-        egui::Grid::new("combo_form").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
-            ui.label("Character");
-            let shown = display(&self.settings.combo_char);
-            egui::ComboBox::from_id_salt("combo_char")
-                .selected_text(shown)
-                .height(400.0)
-                .show_ui(ui, |ui| {
-                    for n in self.roster.clone() {
-                        ui.selectable_value(&mut self.settings.combo_char, n.clone(), display(&n));
-                    }
-                });
-            ui.end_row();
-            ui.label("Combo");
-            let r = ui.add(egui::TextEdit::multiline(&mut self.settings.combo_text)
-                .desired_rows(2)
-                .desired_width(f32::INFINITY)
-                .font(egui::TextStyle::Monospace)
-                .hint_text("AAA > Q1 > Dodge Cancel > AA > Q1 > Jump > Q1 > Q2"));
-            if r.changed() {
-                self.preview_edit = Some(Instant::now());
-            }
-            ui.end_row();
-            ui.label("Tag partners").on_hover_text(
-                "Who is on the team besides the combo's character. Tags in the combo \
-                 (t.Todoroki.Q1) put their target on the team first.");
-            ui.text_edit_singleline(&mut self.settings.combo_partners);
-            ui.end_row();
-            ui.label("Save as").on_hover_text(
-                "Name the learned timing is kept under (models/demo_routes.json). \
-                 Empty = the combo text itself.");
-            ui.add(egui::TextEdit::singleline(&mut self.settings.combo_name)
-                .hint_text("(the combo text)"));
-            ui.end_row();
-            ui.label("Run on");
-            ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.settings.combo_on_box, true, "Box (headless, fast)");
-                ui.selectable_value(&mut self.settings.combo_on_box, false, "This PC's game (watch it)");
-            });
-            ui.end_row();
-            ui.label("Attempts");
-            ui.horizontal(|ui| {
-                ui.add(egui::DragValue::new(&mut self.settings.combo_attempts).range(5..=2000));
-                ui.label("at most, then");
-                ui.add(egui::DragValue::new(&mut self.settings.combo_confirm).range(1..=100));
-                ui.label("repeats to confirm it");
-            });
-            ui.end_row();
-        });
-
-        self.refresh_preview(ui.ctx());
-        ui.add_space(6.0);
-        ui.horizontal(|ui| {
-            ui.add_enabled_ui(!running, |ui| {
-                if ui.button(egui::RichText::new("▶ Practise").strong()).clicked() {
-                    self.start_practice();
-                }
-            });
-            if let Some(r) = self.runner.as_mut() {
-                if r.label.starts_with("Combo ") {
-                    let stopping = r.stopping();
-                    if ui.add_enabled(!stopping, egui::Button::new("■ Stop")).clicked() {
-                        r.request_stop();
-                    }
-                } else {
-                    ui.label("(something else is running - stop it on the Play tab first)");
-                }
-            }
-            if !self.status.is_empty() {
-                ui.label(egui::RichText::new(&self.status).weak());
-            }
-        });
-        ui.add_space(8.0);
-        ui.columns(2, |cols| {
-            let ui = &mut cols[0];
-            ui.strong("What the bot will press");
-            let p = self.preview.lock().unwrap();
-            if let Some(e) = &p.error {
-                ui.colored_label(egui::Color32::from_rgb(230, 120, 90), e);
-            } else if p.busy || p.key.0 != self.settings.combo_text {
-                ui.label(egui::RichText::new("reading...").weak());
-            }
-            egui::ScrollArea::vertical().id_salt("combo_steps").max_height(320.0).show(ui, |ui| {
-                egui::Grid::new("combo_steps_grid").striped(true).num_columns(3).show(ui, |ui| {
-                    for (k, st) in p.steps.iter().enumerate() {
-                        ui.label(egui::RichText::new(format!("{:2}", k + 1)).monospace().weak());
-                        let mut t = st.label.clone();
-                        if let Some(tag) = &st.tag {
-                            t = format!("Tag in {tag}");
-                        }
-                        if let Some(c) = st.charge {
-                            t += &format!("  (charge {c}f)");
-                        }
-                        ui.label(egui::RichText::new(t).monospace().color(ORANGE));
-                        let mut src = st.src.clone();
-                        if let Some(n) = &st.note {
-                            src += &format!("  - {n}");
-                        }
-                        ui.label(egui::RichText::new(src).weak());
-                        ui.end_row();
-                    }
-                });
-            });
-            drop(p);
-            let ui = &mut cols[1];
-            ui.strong("Notation");
-            egui::Grid::new("combo_legend").num_columns(2).spacing([10.0, 2.0]).show(ui, |ui| {
-                for (c, m) in [
-                    ("A", "attack (jab) - AAA = three"),
-                    ("CA", "counter attack (yellow)"),
-                    ("GC", "guard-cancel counter"),
-                    ("UB", "unblockable (red)"),
-                    ("Q1 / Q2", "quirk 1 / quirk 2"),
-                    ("TQ1 / Q3", "tilt quirk 1"),
-                    ("TQ2 / Q4", "tilt quirk 2"),
-                    ("PU", "Plus Ultra (PU2 = the second)"),
-                    ("j.X", "jump, then X"),
-                    ("d.X  bd.X", "dash / back dash, then X"),
-                    ("r.X", "roll, then X"),
-                    ("t.NAME.X", "tag in NAME, then X"),
-                    ("[X]  [X]:40", "charge X (hold 40 frames)"),
-                    ("( ... )", "a note, not pressed"),
-                    ("Jump, Dash, Dodge Cancel,", "Guard, Just Guard, Escape,"),
-                    ("Rising, Extreme Action", "written out also work"),
-                ] {
-                    ui.label(egui::RichText::new(c).monospace().color(ORANGE));
-                    ui.label(m);
-                    ui.end_row();
-                }
-            });
-            ui.add_space(4.0);
-            ui.label(egui::RichText::new(
-                "Steps go between > or -. Timing is not written: each gap starts from how a \
-                 real player times that pair (else a guess) and practice tunes it. \
-                 Plus Ultra needs gauge; the dummy stands still.").weak());
-        });
-    }
-
     fn ui_sidebar(&mut self, ui: &mut egui::Ui) {
         let frame = egui::Frame::new().fill(theme::SIDEBAR).inner_margin(egui::Margin::same(10));
         egui::Panel::left("nav").exact_size(196.0).resizable(false).frame(frame).show(ui, |ui| {
@@ -1861,10 +1649,8 @@ impl App {
                 (Tab::Play, "▶", "Play", None),
                 (Tab::Combos, "⚔", "Combos", None),
                 (Tab::Stats, "📊", "Statistics", None),
+                (Tab::Train, "🏆", "Train", None),
             ];
-            if !self.servers.is_empty() {
-                pages.push((Tab::Train, "🏆", "Train", None));
-            }
             pages.push((Tab::Settings, "⚙", "Settings", None));
             for (tab, icon, label, badge) in pages {
                 if theme::nav_button(ui, self.tab == tab, icon, label, badge).clicked() {

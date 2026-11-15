@@ -55,7 +55,7 @@ pub struct Runner {
 }
 
 /// Quote one word for a POSIX shell.
-fn sh_quote(s: &str) -> String {
+pub(crate) fn sh_quote(s: &str) -> String {
     if !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || "-_./=:,@+".contains(c)) {
         return s.to_string();
     }
@@ -106,10 +106,11 @@ impl Runner {
 
     /// Run any program to completion (setup fixes, pip, sync/pull scripts),
     /// with no stop file: Stop kills it.
-    pub fn start_plain(program: &str, dir: &Path, args: &[String], label: &str)
-        -> Result<Runner, String>
+    pub fn start_plain(program: &str, dir: &Path, args: &[String], env: &[(String, String)],
+                       label: &str) -> Result<Runner, String>
     {
         let mut cmd = Command::new(program);
+        cmd.envs(env.iter().map(|(k, v)| (k, v)));
         cmd.args(args)
             .current_dir(dir)
             .env("PYTHONIOENCODING", "utf-8")
@@ -200,6 +201,15 @@ impl Runner {
                         .spawn();
                 }
                 Stop::Kill => {
+                    // The whole tree: a .bat run through cmd leaves python behind otherwise.
+                    #[cfg(windows)]
+                    {
+                        let mut tk = Command::new("taskkill");
+                        tk.args(["/T", "/F", "/PID", &self.child.id().to_string()])
+                            .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+                            .creation_flags(0x0800_0000);
+                        let _ = tk.status();
+                    }
                     let _ = self.child.kill();
                 }
             }

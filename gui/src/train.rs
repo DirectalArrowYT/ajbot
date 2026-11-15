@@ -1,7 +1,6 @@
-//! The Train page: work with the training server listed in ajbot_local.json.
-//! Training never runs on this PC; these buttons push recordings over, fetch
-//! the league champion, or start a one-off retrain over there.
-//! Hidden when no server is configured (a player who only runs the bot).
+//! The Train page. "This PC" retrains the model here with training/retrain.bat.
+//! "Server" (only when ajbot_local.json lists one) pushes recordings to a
+//! training server, fetches its league champion, or retrains over there.
 
 use crate::theme::{self, MUTED};
 use crate::{App, Job};
@@ -25,15 +24,74 @@ impl App {
     fn py_job(&self, label: &str, args: &[&str]) -> Job {
         let mut a = vec!["-u".to_string()];
         a.extend(args.iter().map(|s| s.to_string()));
-        Job { program: self.settings.python.clone(), args: a, label: label.into(), recheck: false }
+        Job { program: self.settings.python.clone(), args: a, label: label.into(), recheck: false, env: vec![] }
     }
 
     pub(crate) fn ui_train(&mut self, ui: &mut egui::Ui) {
         theme::page_title(ui, "Train",
-            "The league trains on the server around the clock. Feed it recordings and fetch its champion.");
+            "Teach the bot from your recordings: retrain its model from everything recorded so far.");
+        if self.servers.is_empty() {
+            self.train_on_server = false;
+        } else {
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut self.train_on_server, false, RichText::new("This PC").strong());
+                ui.selectable_value(&mut self.train_on_server, true, RichText::new("Server").strong());
+            });
+            ui.add_space(6.0);
+        }
+        if self.train_on_server {
+            self.ui_train_server(ui);
+        } else {
+            self.ui_train_local(ui);
+        }
+    }
+
+    fn ui_train_local(&mut self, ui: &mut egui::Ui) {
+        let busy = self.runner.is_some();
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            theme::titled_card(ui, "Retrain model", |ui| {
+                ui.label(RichText::new(
+                    "Runs training\\retrain.bat: digests new recordings (runs\\ and botruns\\), mines \
+                     combos and fits a new models\\policy.pkl. The old model moves to models\\prev\\, \
+                     so a worse retrain can be put back. Uses most of the CPU and memory for a few \
+                     minutes; best with the game closed.")
+                    .color(MUTED));
+                ui.horizontal(|ui| {
+                    ui.label("train.py flags");
+                    ui.add(egui::TextEdit::singleline(&mut self.local_train_args)
+                        .hint_text("empty = quick fit")
+                        .desired_width(260.0));
+                    if ui.small_button("careful fit").on_hover_text(
+                        "--cherrypick: compares every candidate on a held-out match first (slow)")
+                        .clicked()
+                    {
+                        self.local_train_args = "--cherrypick".into();
+                    }
+                });
+                ui.add_space(4.0);
+                if ui.add_enabled(!busy, egui::Button::new(
+                    RichText::new("Retrain model").strong().color(egui::Color32::BLACK))
+                    .fill(theme::ORANGE)).clicked()
+                {
+                    let mut args = vec!["/c".to_string(), "training\\retrain.bat".into()];
+                    args.extend(self.local_train_args.split_whitespace().map(String::from));
+                    let env = vec![("PYTHON".to_string(), self.settings.python.clone()),
+                                   ("AJBOT_NO_PAUSE".to_string(), "1".to_string())];
+                    self.run_jobs(vec![Job { program: "cmd".into(), args, label: "retrain".into(),
+                                             recheck: false, env }]);
+                }
+            });
+        });
+    }
+
+    fn ui_train_server(&mut self, ui: &mut egui::Ui) {
         let busy = self.runner.is_some();
         let names = self.servers.clone();
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            ui.label(RichText::new(
+                "The league trains on the server around the clock. Feed it recordings and fetch its champion.")
+                .color(MUTED));
+            ui.add_space(6.0);
             theme::titled_card(ui, "League champion", |ui| {
                 ui.label(RichText::new(
                     "Pushes your new recordings to the server, then installs the current champion \

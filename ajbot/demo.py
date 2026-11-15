@@ -88,19 +88,62 @@ def get(name, path=DEMO_PATH):
     return hits[0] if len(hits) == 1 else None
 
 
+class _locked:
+    """Exclusive lock on <path>.lock: several practice runs (drill.py, one per
+    game copy) and the GUI save into the same file."""
+
+    def __init__(self, path):
+        self.lock = Path(path).with_suffix(".lock")
+
+    def __enter__(self):
+        self.lock.parent.mkdir(parents=True, exist_ok=True)
+        self.fh = open(self.lock, "a+")
+        if os.name == "nt":
+            import msvcrt
+            self.fh.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(self.fh.fileno(), msvcrt.LK_LOCK, 1)   # retries ~10 s itself
+                    break
+                except OSError:
+                    continue
+        else:
+            import fcntl
+            fcntl.flock(self.fh, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *exc):
+        if os.name == "nt":
+            import msvcrt
+            self.fh.seek(0)
+            try:
+                msvcrt.locking(self.fh.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
+        self.fh.close()
+
+
 def put(route, path=DEMO_PATH):
-    """Add `route`, replacing a saved one of the same name. Locked: several
-    practice runs (drill.py, one per game copy) save into the same file."""
-    import fcntl
-    lock = Path(path).with_suffix(".lock")
-    lock.parent.mkdir(parents=True, exist_ok=True)
-    with open(lock, "w") as fh:
-        fcntl.flock(fh, fcntl.LOCK_EX)
+    """Add `route`, replacing a saved one of the same name."""
+    with _locked(path):
         data = load(path)
         routes = [r for r in data.get("routes") or [] if r.get("name") != route.get("name")]
         routes.append(route)
         data["routes"] = routes
         save(data, path)
+
+
+def remove(name, path=DEMO_PATH):
+    """Delete the saved route called exactly `name`. True if one was there."""
+    with _locked(path):
+        data = load(path)
+        routes = data.get("routes") or []
+        keep = [r for r in routes if r.get("name") != name]
+        if len(keep) == len(routes):
+            return False
+        data["routes"] = keep
+        save(data, path)
+        return True
 
 
 def _rel(me, en):
@@ -397,7 +440,15 @@ def main(argv=None):
     p.add_argument("--gap", type=int, default=14, help="first-guess frames between steps")
     p.add_argument("--name")
     sub.add_parser("show", help="saved demo routes")
+    p = sub.add_parser("delete", help="delete a saved demo route (exact name)")
+    p.add_argument("name")
     a = ap.parse_args(argv)
+
+    if a.cmd == "delete":
+        if not remove(a.name):
+            sys.exit(f"no saved route is called '{a.name}'")
+        print(f"deleted '{a.name}' from {DEMO_PATH}")
+        return 0
 
     if a.cmd in ("list", "save"):
         ticks, found = combos_in(a.recording, a.char, a.min_hits, a.side)

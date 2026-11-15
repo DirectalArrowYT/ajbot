@@ -593,6 +593,9 @@ def main(argv=None):
         old = demo.get(a.save)
         if old and old.get("name") == a.save and old.get("notation") == r["notation"]:
             r["learned"] = old.get("learned")      # same combo: keep what was learned
+            for st, o in zip(r["steps"], old.get("steps") or []):   # and what steps register as
+                if o.get("label") == st["label"] and o.get("alias"):
+                    st["alias"] = sorted(set(st.get("alias") or []) | set(o["alias"]))
         demo.put(r)
     if a.json:
         print(json.dumps(r))

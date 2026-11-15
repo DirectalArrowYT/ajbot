@@ -155,7 +155,7 @@ impl App {
     fn fix_job(&self, id: &str, extra: &[String]) -> Job {
         let mut args = vec!["-u".to_string(), "tools/doctor.py".into(), "--fix".into(), id.into()];
         args.extend_from_slice(extra);
-        Job { program: self.settings.python.clone(), args, label: format!("fix {id}"), recheck: true }
+        Job { program: self.settings.python.clone(), args, label: format!("fix {id}"), recheck: true, env: vec![] }
     }
 
     pub(crate) fn ui_setup(&mut self, ui: &mut egui::Ui) {
@@ -271,12 +271,12 @@ impl App {
                     if ui.add_enabled(!busy_job, egui::Button::new("Check for updates")).clicked() {
                         self.run_jobs(vec![Job { program: py.clone(),
                             args: vec!["-u".into(), "tools/update.py".into(), "--check".into()],
-                            label: "update check".into(), recheck: false }]);
+                            label: "update check".into(), recheck: false, env: vec![] }]);
                     }
                     if ui.add_enabled(!busy_job, egui::Button::new("Update now")).clicked() {
                         self.run_jobs(vec![Job { program: py,
                             args: vec!["-u".into(), "tools/update.py".into()],
-                            label: "update".into(), recheck: true }]);
+                            label: "update".into(), recheck: true, env: vec![] }]);
                     }
                     if ui.button("Releases page").clicked() {
                         open_url("https://github.com/DirectalArrowYT/ajbot/releases");

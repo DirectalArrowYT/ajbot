@@ -36,7 +36,7 @@ Everything needed to train is in this repo; it runs on your own PC.
 1. Record matches: start `python bot/record.py` (or **Record me** on the Play page)
    and play normally. Each match lands in `runs/`. Bot-vs-bot matches from
    the Play page are saved to `botruns/` and are used too.
-2. Run `training\retrain.bat`. It digests the recordings, mines combos and
+2. Press **Retrain model** on the Train page (or run `training\retrain.bat`). It digests the recordings, mines combos and
    fits a new `models/policy.pkl` (a few minutes once the caches are warm).
    The previous model is moved to `models/prev/`, so a worse retrain can be
    undone. Flags are passed on to `training/train.py`, e.g.
@@ -48,8 +48,8 @@ Everything needed to train is in this repo; it runs on your own PC.
 
 Training servers and unusual game paths live in `ajbot_local.json`, which
 is never committed (copy `ajbot_local.example.json`). With a server listed,
-the GUI shows a **Train** page: push recordings, fetch the league champion,
-or run a one-off retrain over there.
+the Train page gets a **Server** tab: push recordings, fetch the league
+champion, or run a one-off retrain over there.
 
 ## Making a release
 
