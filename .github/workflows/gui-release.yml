@@ -1,5 +1,5 @@
-# Builds the GUI on every push to main that touches it and publishes
-# ajbot-gui.exe as a new release. tools/update.py and the Setup page pick
+# Builds the GUI and the icon extractor on every push to main that touches
+# either and publishes ajbot-gui.exe + ajbot-iconextract.exe as a new release. tools/update.py and the Setup page pick
 # up the newest release that has the exe. The game files zip is published
 # by hand (tools/make_release.py) and is found in whichever release holds it.
 name: GUI release
@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - "gui/**"
+      - "tools/iconextract/**"
       - ".github/workflows/gui-release.yml"
   workflow_dispatch:
 
@@ -33,6 +34,19 @@ jobs:
         working-directory: gui
         run: cargo build --release --locked
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build icon extractor
+        working-directory: tools/iconextract
+        shell: bash
+        run: |
+          dotnet publish -c Release -r win-x64 --self-contained \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true -o out
+          cp out/iconextract.exe ../../ajbot-iconextract.exe
+
       - name: Publish release
         shell: bash
         env:
@@ -44,9 +58,9 @@ jobs:
           Download ajbot-gui.exe into your AJBot folder, or use Setup > Update now.
           The game files zip is in the newest release that has one."
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" gui/target/release/ajbot-gui.exe --clobber
+            gh release upload "$tag" gui/target/release/ajbot-gui.exe ajbot-iconextract.exe --clobber
           else
-            gh release create "$tag" gui/target/release/ajbot-gui.exe \
+            gh release create "$tag" gui/target/release/ajbot-gui.exe ajbot-iconextract.exe \
               --title "GUI $tag" --notes "$notes" --target "$GITHUB_SHA" --latest
           fi
 

@@ -1786,6 +1786,8 @@ impl eframe::App for App {
                 if !self.next_job(Some(log)) && std::mem::take(&mut self.jobs_recheck) {
                     self.setup_refresh(ctx);
                     self.servers = train::servers(&self.dir());
+                    self.icons.clear();             // a fix may have extracted them
+                    self.icons_loaded = false;
                 }
             }
             ctx.request_repaint_after(Duration::from_millis(200));

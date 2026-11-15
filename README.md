@@ -17,7 +17,9 @@ shared) trained models are on the Releases page.
    Python and its packages, the Visual C++ runtime, the ViGEmBus controller
    driver, finding the game, and installing the game-side files (ASI loader,
    UE4SS with HookLoadMap = 0, the bot's UE4SS mods, `ajhook.asi`). Close the
-   game while it installs those.
+   game while it installs those. **Extract icons** pulls the character
+   icons out of your copy of the game (`tools/iconextract`, a small
+   CUE4Parse program built into each release).
 4. Put a trained model in `models/` (`models/policy.pkl`).
 5. **Play** page: pick a mode and press Start.
 

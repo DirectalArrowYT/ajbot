@@ -221,6 +221,13 @@ def run_checks():
         else:
             add("hook_ran", "Game", "Hook ran last launch", None, "start the game once to check")
 
+    if game:
+        want = icon_names()
+        have = [n for n in want if Path("assets/icons", n + ".png").exists()]
+        add("icons", "Game", "Character icons (from the game)", len(have) == len(want),
+            f"{len(have)} of {len(want)}", None if len(have) == len(want) else "icons",
+            "Extract icons")
+
     pol = Path("models/policy.pkl")
     add("models", "Bot", "Trained model (models/policy.pkl)", pol.exists(),
         f"{pol.stat().st_size // 1024 // 1024} MB" if pol.exists()
@@ -237,6 +244,33 @@ def say(msg):
 
 GUI_ASSET = "ajbot-gui.exe"
 GAMEFILES_PREFIX = "ajbot-gamefiles"
+ICONEXTRACT_ASSET = "ajbot-iconextract.exe"
+ICON_IDS = Path("assets/icon_ids.json")
+
+
+def icon_names():
+    try:
+        return list(json.loads(ICON_IDS.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return []
+
+
+def extract_icons(game):
+    """The character icons come out of the game's own files (tools/iconextract,
+    built by GitHub Actions into every release), so the repo carries no art."""
+    exe = Path("cache") / ICONEXTRACT_ASSET
+    if not exe.exists():
+        say(f"asking GitHub for the latest release of {RELEASE_REPO} ...")
+        rel, asset = release_with(ICONEXTRACT_ASSET)
+        exe.parent.mkdir(exist_ok=True)
+        say(f"downloading {asset['name']} ({asset['size'] // 1024 // 1024} MB) from {rel.get('tag_name')}")
+        download(asset["browser_download_url"], exe)
+    paks = Path(game) / "HeroGame" / "Content" / "Paks"
+    cmd = [str(exe.resolve()), str(paks), str(ICON_IDS.resolve()), str(Path("assets/icons").resolve())]
+    say("> " + " ".join(cmd))
+    code = subprocess.call(cmd)
+    if code:
+        raise SystemExit(f"iconextract failed ({code})")
 
 
 def release_with(prefix):
@@ -367,6 +401,9 @@ def fix(fid, path=None):
     game = find_game()
     if game is None:
         raise SystemExit("set the game folder first")
+    if fid == "icons":                  # only reads the game's files: fine while it runs
+        extract_icons(game)
+        return
     if game_running():
         raise SystemExit("close the game first - its files are in use")
     win64 = win64_of(game)

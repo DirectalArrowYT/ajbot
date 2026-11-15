@@ -39,3 +39,7 @@ ajbot_local.json
 /practice.jsonl
 /models.7z
 /dist/
+
+# Icon extractor build output (published by GitHub Actions)
+tools/iconextract/bin/
+tools/iconextract/obj/
