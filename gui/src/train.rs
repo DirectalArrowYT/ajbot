@@ -44,16 +44,16 @@ impl App {
                         RichText::new("Sync + get champion").strong().color(egui::Color32::BLACK))
                         .fill(theme::ORANGE)).clicked()
                     {
-                        let jobs = vec![self.py_job("sync", &["remote_retrain.py", "--sync"]),
-                                        self.py_job("champion", &["pull_champion.py"])];
+                        let jobs = vec![self.py_job("sync", &["training/remote_retrain.py", "--sync"]),
+                                        self.py_job("champion", &["training/pull_champion.py"])];
                         self.run_jobs(jobs);
                     }
                     if ui.add_enabled(!busy, egui::Button::new("What does the server have?")).clicked() {
-                        let j = self.py_job("champion check", &["pull_champion.py", "--check"]);
+                        let j = self.py_job("champion check", &["training/pull_champion.py", "--check"]);
                         self.run_jobs(vec![j]);
                     }
                     if ui.add_enabled(!busy, egui::Button::new("Reinstall champion")).clicked() {
-                        let j = self.py_job("champion", &["pull_champion.py", "--force"]);
+                        let j = self.py_job("champion", &["training/pull_champion.py", "--force"]);
                         self.run_jobs(vec![j]);
                     }
                 });
@@ -64,7 +64,7 @@ impl App {
                     "Copies finished recordings to the server (checked, then removed here).")
                     .color(MUTED));
                 if ui.add_enabled(!busy, egui::Button::new("Push recordings now")).clicked() {
-                    let j = self.py_job("sync", &["remote_retrain.py", "--sync"]);
+                    let j = self.py_job("sync", &["training/remote_retrain.py", "--sync"]);
                     self.run_jobs(vec![j]);
                 }
             });
@@ -89,12 +89,12 @@ impl App {
                 ui.horizontal(|ui| {
                     if ui.add_enabled(!busy, egui::Button::new("Retrain on server")).clicked() {
                         let (h, a) = (self.train_host.clone(), self.train_args.clone());
-                        let j = self.py_job("retrain", &["remote_retrain.py", "--host", &h, "--args", &a]);
+                        let j = self.py_job("retrain", &["training/remote_retrain.py", "--host", &h, "--args", &a]);
                         self.run_jobs(vec![j]);
                     }
                     if ui.add_enabled(!busy, egui::Button::new("Only fetch its latest policy")).clicked() {
                         let h = self.train_host.clone();
-                        let j = self.py_job("pull", &["remote_retrain.py", "--host", &h, "--pull"]);
+                        let j = self.py_job("pull", &["training/remote_retrain.py", "--host", &h, "--pull"]);
                         self.run_jobs(vec![j]);
                     }
                 });

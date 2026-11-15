@@ -1,8 +1,8 @@
 """Combo drill: the farm's game copies practise long combos instead of playing.
 
-    python3 drill.py                         # copies 0-3, every long route once
-    python3 drill.py --copies 2 --min-steps 10 --max-attempts 200
-    python3 drill.py --only Mirio --rounds 3
+    python3 bot/drill.py                         # copies 0-3, every long route once
+    python3 bot/drill.py --copies 2 --min-steps 10 --max-attempts 200
+    python3 bot/drill.py --only Mirio --rounds 3
 
 Routes, longest first:
   * models/drill_routes.json - combos written by people, in combo notation
@@ -38,6 +38,9 @@ Stop the farm first (it uses the same copies); stop the drill with Ctrl-C,
 SIGTERM, or by creating drill.stop. Progress goes to drill.log, each copy's
 practice output to drill-N.log.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import fcntl
 import json
@@ -50,7 +53,7 @@ import threading
 import time
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 sys.path.insert(0, str(HERE))
 
 from ajbot import demo, notation           # noqa: E402
@@ -333,7 +336,7 @@ def worker(n, work, a, procs):
             route = work.get_nowait()
         except queue.Empty:
             return
-        argv = [a.python, str(HERE / "practice.py"), "--route-json", json.dumps(route),
+        argv = [a.python, str(HERE / "bot" / "practice.py"), "--route-json", json.dumps(route),
                 "--instance", str(n), "--launch", "--stop-file", str(STOP),
                 "--max-attempts", str(a.max_attempts), "--confirm", str(a.confirm),
                 "--speed", str(a.speed)]

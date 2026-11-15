@@ -1,17 +1,17 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 REM Retrain the policy from every recording on disk and save it to models\.
 REM
-REM   retrain.bat                 cherry-picked bot runs + all human runs (quick:
+REM   trainingetrain.bat                 cherry-picked bot runs + all human runs (quick:
 REM                               fits the usual winning models, ~2 min once caches are warm)
-REM   retrain.bat --cherrypick    the same, but compares every candidate model on a
+REM   trainingetrain.bat --cherrypick    the same, but compares every candidate model on a
 REM                               held-out match first (slow; run now and then)
-REM   retrain.bat --cherrypick --no-cache   rebuild every feature cache from scratch
-REM   retrain.bat --cherrypick all      filter the human runs too
-REM   retrain.bat --cherrypick off      old behaviour, every tick trained on
-REM   retrain.bat --mode frames         label every tick, not just changes
+REM   trainingetrain.bat --cherrypick --no-cache   rebuild every feature cache from scratch
+REM   trainingetrain.bat --cherrypick all      filter the human runs too
+REM   trainingetrain.bat --cherrypick off      old behaviour, every tick trained on
+REM   trainingetrain.bat --mode frames         label every tick, not just changes
 REM
 REM Anything passed in is handed straight to train.py, so its flags all work
 REM (--min-damage, --top-frac, --lead-s, --runs, --no-cache ...).
@@ -43,7 +43,7 @@ if errorlevel 1 (
 
 echo.
 echo === what the bot has learned so far ===
-%PYTHON% mine.py --quiet --top 5
+%PYTHON% training\mine.py --quiet --top 5
 if errorlevel 1 (
     echo.
     echo mine.py failed - carrying on to the training step anyway.
@@ -51,7 +51,7 @@ if errorlevel 1 (
 
 echo.
 echo === mining combos (models\combobook.json) ===
-%PYTHON% combobook.py
+%PYTHON% training\combobook.py
 if errorlevel 1 (
     echo.
     echo combobook.py failed - the bot will run without the combo book.
@@ -86,9 +86,9 @@ if errorlevel 1 (
 echo.
 echo === retraining ===
 if "%~1"=="" (
-    %PYTHON% train.py --include-bot --cherrypick --quick --save models
+    %PYTHON% training\train.py --include-bot --cherrypick --quick --save models
 ) else (
-    %PYTHON% train.py --include-bot --save models %*
+    %PYTHON% training\train.py --include-bot --save models %*
 )
 
 if errorlevel 1 (
@@ -105,6 +105,6 @@ echo === results so far, per policy version (tools\benchmark.py) ===
 echo.
 echo Done. New policy in models\policy.pkl
 echo Compare it against the previous one with:
-echo    python play2.py --a Bakugo,Dabi,Nomu --b DekuFinal,Todoroki,AllMight --model-b models\prev\policy-DATE.pkl
+echo    python bot\play2.py --a Bakugo,Dabi,Nomu --b DekuFinal,Todoroki,AllMight --model-b models\prev\policy-DATE.pkl
 echo    (pick the newest file in models\prev for DATE)
 pause

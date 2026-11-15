@@ -9,8 +9,8 @@
 #     (steamclient talks to Steam over those; without them the game's
 #     SteamAPI_Init fails and it quits)
 #
-#   ./offline_game.sh           start the game, returns when it exits
-#   AJ_ENDLESS=1 ./offline_game.sh
+#   server/offline_game.sh           start the game, returns when it exits
+#   AJ_ENDLESS=1 server/offline_game.sh
 #                               also run endless.py: boots straight from the
 #                               title into random matches, forever (log in
 #                               endless.log; extra args in AJ_ENDLESS_ARGS)
@@ -39,8 +39,8 @@
 # pick the port and files from it).
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NB="$HERE/netbridge.py"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # the AJBot folder (this file is in server/)
+NB="$HERE/server/netbridge.py"
 FP_ID=com.valvesoftware.Steam
 FP_STEAM="$HOME/.var/app/$FP_ID/.local/share/Steam"
 
@@ -124,7 +124,7 @@ sleep 0.3
 if [[ -n "${AJ_ENDLESS:-}" ]]; then
     # shellcheck disable=SC2086  # AJ_ENDLESS_ARGS is a word list on purpose
     AJ_INSTANCE="$INST" AJHOOK_PORT="$PORT" AJ_PREFIX="$BASE_PREFIX" \
-        python3 "$HERE/endless.py" ${AJ_ENDLESS_ARGS:-} >>"$HERE/endless$SFX.log" 2>&1 &
+        python3 "$HERE/server/endless.py" ${AJ_ENDLESS_ARGS:-} >>"$HERE/endless$SFX.log" 2>&1 &
     ENDLESS=$!
     echo "endless.py running (pid $ENDLESS, log $HERE/endless$SFX.log)"
 fi

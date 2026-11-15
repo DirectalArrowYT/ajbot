@@ -37,6 +37,9 @@ presses anything between matches.
 Ctrl-C stops and releases both pads (so does creating --stop-file, which is
 how the GUI stops it cleanly).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import collections
 import json
@@ -816,7 +819,7 @@ def main():
     try:
         agent_a = Agent(args.model, flip_x=args.flip_x, deadzone=args.deadzone)
     except FileNotFoundError:
-        print(f"no policy at {args.model} - run: python train.py --save models")
+        print(f"no policy at {args.model} - run: python training/train.py --save models")
         return 1
     if (args.model_b and args.model_b != args.model) or args.boss:
         try:

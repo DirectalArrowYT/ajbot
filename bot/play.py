@@ -33,6 +33,9 @@ stats/matches.jsonl. Between matches the bot presses nothing.
 Ctrl-C stops and releases the pad (so does creating --stop-file, which is how
 the GUI stops it cleanly).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import collections
 import json
@@ -257,7 +260,7 @@ def main():
     try:
         agent = Agent(args.model, flip_x=args.flip_x, deadzone=args.deadzone)
     except FileNotFoundError:
-        print(f"no policy at {args.model} - run: python train.py --save models")
+        print(f"no policy at {args.model} - run: python training/train.py --save models")
         return 1
     print(f"policy: {len(agent.actions)} actions, {len(agent.chars)} characters")
     agent.critic_beta = args.critic_beta
@@ -302,14 +305,14 @@ def main():
         budget=args.escapes, min_hits_taken=args.escape_hits)
 
     # Combo chains by the game's rule, shared by every policy; and the combo
-    # book mined from the recordings (python combobook.py builds it).
+    # book mined from the recordings (python training/combobook.py builds it).
     book = None if args.no_book else combobook.load()
     combo = combobook.ComboPolicy(book) if book else None
     if combo:
         print(f"combo book: {book.get('segments', 0)} segments, "
               f"{len(combo.chars)} characters")
     elif not args.no_book:
-        print("no combo book yet - build one with: python combobook.py")
+        print("no combo book yet - build one with: python training/combobook.py")
     route = None if args.no_routes else routebook.RouteFollower(routebook.load_all(Path(args.model).parent))
     if route:
         print(f"authored routes: {', '.join(sorted(route.routes))}; "

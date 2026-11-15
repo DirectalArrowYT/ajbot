@@ -5,6 +5,8 @@ change and the mean rside (see agent.FrameTracker.observe).
 Hold one pad's stick at a sweep of angles and log how the distance changes,
 with the game's lcam / rside. Ground truth for 'which stick angle approaches'.
 usage: python probe_dir.py [P1|P2] [hold_s] [step_deg]"""
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import json, math, os, sys, time
 sys.path.insert(0, ".")

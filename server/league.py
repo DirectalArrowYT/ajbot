@@ -1,8 +1,8 @@
 """Champion vs challenger: retrain on what the farm plays, keep a new policy
 only when it beats the old one. Runs on the box next to farm.py.
 
-    python3 league.py                 # forever (league.log)
-    python3 league.py --status        # where it stands
+    python3 server/league.py                 # forever (league.log)
+    python3 server/league.py --status        # where it stands
 
 The cycle, repeated without anyone at the controls:
   1. ingest   finished recordings from this checkout's botruns/ move into the
@@ -27,6 +27,9 @@ The cycle, repeated without anyone at the controls:
 Training for the next generation starts as soon as there is new data, so a
 fresh challenger is usually waiting when the current one is decided.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import glob
 import json
@@ -37,7 +40,7 @@ import sys
 import time
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 from ajbot import local as _local          # ajbot_local.json: servers.server
 _SRV = _local.server("server")
 CORPUS = Path(_SRV["dir"])
@@ -100,11 +103,11 @@ def ingest(a, prune=True):
         os.replace(f, dest / Path(f).name)        # same disk: a rename, mtime kept
     if not prune:
         return len(done)          # counted as kept; the next pass prunes
-    r = subprocess.run(["nice", "-n", "10", PY, str(HERE / "archive_low_value.py"),
+    r = subprocess.run(["nice", "-n", "10", PY, str(HERE / "server" / "archive_low_value.py"),
                         "--runs", "botruns/*.jsonl", "--apply", "--max-gb", str(a.max_gb),
                         "--purge-archive"],
                        cwd=CORPUS, capture_output=True, text=True,
-                       env=dict(os.environ, PYTHONPATH=str(HERE)))
+                       env=dict(os.environ, PYTHONPATH=f"{HERE}:{HERE}/server:{HERE}/training"))
     kept = sum(1 for f in done if (dest / Path(f).name).exists())
     last = (r.stdout.strip().splitlines() or ["?"])
     if r.returncode != 0:
@@ -122,23 +125,23 @@ def train_cmd(a):
     # corpus's own (old) ajbot package ahead of PYTHONPATH=HERE.
     py = f"{PY} -u -P"
     steps = [f"{py} -m ajbot.tickcache",
-             f"{py} {HERE}/mine.py --quiet --top 5",
-             f"{py} {HERE}/combobook.py",
+             f"{py} {HERE}/training/mine.py --quiet --top 5",
+             f"{py} {HERE}/training/combobook.py",
              f"{py} -m ajbot.moveinfo",
              f"{py} -m ajbot.threat",
              f"{py} -m ajbot.routemine --workers 2",
-             f"{py} {HERE}/train.py --include-bot --save models/fit {a.train_args}"
+             f"{py} {HERE}/training/train.py --include-bot --save models/fit {a.train_args}"
              " && rm -rf models/fit/prev"]
     pin = f"nice -n 10 taskset -c 0-{a.cores - 1}"
     chain = " && ".join(f"{pin} {s}" for s in steps)
     # The boss's lean: a fit on human recordings only, redone only when
     # runs/ has something newer than it.
     chain += (f" && if [ ! -f models/human/policy.pkl ] || [ -n \"$(find runs -name '*.jsonl'"
-              f" -newer models/human/policy.pkl | head -1)\" ]; then {pin} {py} {HERE}/train.py"
+              f" -newer models/human/policy.pkl | head -1)\" ]; then {pin} {py} {HERE}/training/train.py"
               f" --save models/human --quick && rm -rf models/human/prev; fi")
     return ["systemd-run", "--user", "--scope", "-q", "-p", f"MemoryMax={a.mem_gb}G",
             "-p", "MemorySwapMax=0", "bash", "-c",
-            f"cd {CORPUS} && mkdir -p models/fit && export PYTHONPATH={HERE} "
+            f"cd {CORPUS} && mkdir -p models/fit && export PYTHONPATH={HERE}:{HERE}/training "
             # combobook/moveinfo/threat are written to (and the fit reads its
             # features from) models/fit - never over the champion's models/.
             f"AJBOT_DATA_DIR=models/fit OMP_NUM_THREADS={a.cores} "

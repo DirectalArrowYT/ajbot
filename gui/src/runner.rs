@@ -1,4 +1,4 @@
-//! Launching and stopping the Python side (play.py / play2.py / record.py).
+//! Launching and stopping the Python side (bot/play.py, bot/play2.py, ...).
 //!
 //! The scripts are long-running and print a live log. They are started with
 //! `python -u` so output arrives line by line, and stopped through a stop
@@ -130,7 +130,8 @@ impl Runner {
     pub fn start_remote(host: &str, dir: &str, python: &str, script: &str, args: &[String],
                         env: &[(&str, &str)], label: &str) -> Result<Runner, String>
     {
-        let stop = format!("{}/stats/.gui_stop_{script}", dir.trim_end_matches('/'));
+        let tag = script.rsplit('/').next().unwrap_or(script);   // bot/practice.py -> practice.py
+        let stop = format!("{}/stats/.gui_stop_{tag}", dir.trim_end_matches('/'));
         let mut line = format!("cd {} && mkdir -p stats && rm -f {} && exec env PYTHONIOENCODING=utf-8",
                                sh_quote(dir), sh_quote(&stop));
         for (k, v) in env {

@@ -21,6 +21,8 @@ This reuses build_weighted()'s exact tick-selection logic (dataset.py) so
 per-sample context (character, distance, hp lead, situation) captured
 alongside, which training's own arrays() throws away.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import collections

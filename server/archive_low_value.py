@@ -16,16 +16,19 @@ Never touches runs/, nor a solo botruns/<ts>.jsonl (play.py, one per match:
 the bot against a real person or the game's CPU): human recordings are the
 scarce, trusted signal. Only self-play (<ts>.<tag>.jsonl, -iN copies) goes.
 
-    python archive_low_value.py                        # score botruns/, dry run
-    python archive_low_value.py --apply                 # delete the losers
-    python archive_low_value.py --apply --max-gb 8      # and cap botruns/ at 8 GB
-    python archive_low_value.py --apply --purge-archive # also empty archive/
+    python server/archive_low_value.py                        # score botruns/, dry run
+    python server/archive_low_value.py --apply                 # delete the losers
+    python server/archive_low_value.py --apply --max-gb 8      # and cap botruns/ at 8 GB
+    python server/archive_low_value.py --apply --purge-archive # also empty archive/
 
 Every --apply also sweeps cache/ of the digests, facts and training arrays
 of recordings that no longer exist (deleted here, or by hand): tickcache
 keys them by file name and never cleans up, so without this the cache grew
 to ten times the size of the recordings it served.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import glob
 import json

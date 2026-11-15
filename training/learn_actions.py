@@ -1,7 +1,7 @@
 """Mine recordings for actions ACTION_MAP has no button press for, and guess
 one when the name says it is a held variant of a move already mapped.
 
-    python learn_actions.py                  # scan every recording, write
+    python training/learn_actions.py                  # scan every recording, write
                                               # models/learned_actions.json
 
 Charge quirks are the case this actually solves: the game reports a distinct
@@ -19,6 +19,9 @@ Re-running this only adds or refreshes entries for actions seen in the runs
 scanned; it never touches hand-written ACTION_MAP entries (agent.py's loader
 only fills gaps that ACTION_MAP does not already cover).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import glob
 import json

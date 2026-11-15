@@ -1,9 +1,9 @@
 """Combo practice: the bot repeats a demo route until it lands it.
 
-    python3 practice.py "Bakugo BnB"               # route saved by ajbot.demo
-    python3 practice.py "cancel route" --confirm 10 --max-attempts 300
+    python3 bot/practice.py "Bakugo BnB"               # route saved by ajbot.demo
+    python3 bot/practice.py "cancel route" --confirm 10 --max-attempts 300
     # straight from combo notation (ajbot/notation.py has the codes)
-    python3 practice.py --char Bakugo --notation "AAA > Q1 > Dodge Cancel > AA > Q1"
+    python3 bot/practice.py --char Bakugo --notation "AAA > Q1 > Dodge Cancel > AA > Q1"
 
 Runs on its own game copy (AJ_INSTANCE, default 4 here, so a farm on copies
 0-3 is not touched) - start it with farm.py-style launching or let it start
@@ -35,6 +35,9 @@ back at the start) and walks back in. The match itself is only restarted
 after --per-match attempts, a KO, a failed reset, or after every attempt of a
 route with a tag in it (the point fighter changed).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import collections
 import json
@@ -67,7 +70,7 @@ from ajbot.chain import ChainTracker          # noqa: E402
 from ajbot.hook import Hook, HookError        # noqa: E402
 from ajbot.lockstep import Link               # noqa: E402
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 NEUTRAL = (0.0, 0.0)
 DASHES = {"Dash", "DashForward", "DashBack"}
 SEARCH = [0, -2, 2, -4, 4, -6, 6, -8, 8, -11, 11, -14, 14, 18, -18, 24, 30, 38]
@@ -901,7 +904,7 @@ def main():
     ap.add_argument("--fresh", action="store_true", help="ignore offsets learned before")
     ap.add_argument("--launch", action="store_true",
                     help="start the game copy (offline_game.sh) if the hook is not up")
-    ap.add_argument("--launcher", default=_local.get("game.launcher") or str(Path(__file__).resolve().parent / "offline_game.sh"))
+    ap.add_argument("--launcher", default=_local.get("game.launcher") or str(HERE / "server" / "offline_game.sh"))
     ap.add_argument("--xvfb", type=int, default=99, metavar="N",
                     help="launch the game on Xvfb :N when it is running (farm.py --xvfb), "
                          "not on the desktop")

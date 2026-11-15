@@ -19,6 +19,8 @@ once. Originals are archived (gzip) before being replaced, never deleted.
     python prune_stale_chars.py --apply
     python prune_stale_chars.py --apply --min-size-mb 10
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import glob

@@ -1,14 +1,17 @@
 """Run a Lua chunk on the game's Unreal side through the AJProbe UE4SS mod.
 
-    python ueprobe.py 'return FindFirstOf("GameEngine"):GetFullName()'
-    python ueprobe.py -f probe.lua          # chunk from a file
-    python ueprobe.py --dump                # UE4SS object dump (DumpAllObjects)
-    python ueprobe.py --sdk                 # UE4SS C++ header dump (GenerateSDK)
+    python server/ueprobe.py 'return FindFirstOf("GameEngine"):GetFullName()'
+    python server/ueprobe.py -f probe.lua          # chunk from a file
+    python server/ueprobe.py --dump                # UE4SS object dump (DumpAllObjects)
+    python server/ueprobe.py --sdk                 # UE4SS C++ header dump (GenerateSDK)
 
 Inside the chunk, out(...) adds a line to the result. Set AJ_GAME_DIR if the
 game is not in the default Steam library. Dumps land in the game's Win64
 folder (UE4SS_ObjectDump.txt, CXXHeaderDump/).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import os
 import sys
 import time

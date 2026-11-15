@@ -47,7 +47,7 @@ impl NativeRecorder {
 
         let mut cmd = Command::new(python);
         cmd.arg("-u")
-            .arg("native_record_setup.py")
+            .arg("bot/native_record_setup.py")
             .arg(out_path)
             .arg("--every")
             .arg(every_pumps.to_string())

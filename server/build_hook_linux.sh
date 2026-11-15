@@ -4,15 +4,15 @@
 # dsound.dll: under Proton nothing loads dinput8.dll, but AJGAME.exe imports
 # dsound at startup.
 #
-#   ./build_hook_linux.sh            build + install
-#   ./build_hook_linux.sh --build    build only
+#   server/build_hook_linux.sh            build + install
+#   server/build_hook_linux.sh --build    build only
 #
 # Needs: rustup target x86_64-pc-windows-gnu, and mingw-w64-gcc for the linker.
 # Steam launch options for the game must include:
 #   WINEDLLOVERRIDES="dsound,dwmapi=n,b" %command%
 # (dwmapi = the UE4SS proxy that runs the CursorExport mod)
 set -euo pipefail
-cd "$(dirname "$0")/ajhook"
+cd "$(dirname "$0")/../ajhook"
 
 DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/MY HERO ACADEMIA All's Justice"
 GAME="${AJ_GAME_DIR:-$DEFAULT_GAME}"

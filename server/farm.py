@@ -1,7 +1,7 @@
 """Run several headless game copies with lockstep bots, and keep them running.
 
-    python3 farm.py --copies 2             # copies 0 and 1, forever
-    python3 farm.py --copies 4 --speed 100 --python <venv>/bin/python
+    python3 server/farm.py --copies 2             # copies 0 and 1, forever
+    python3 server/farm.py --copies 4 --speed 100 --python <venv>/bin/python
 
 For each copy N it starts, in order:
   1. the game:      offline_game.sh with AJ_INSTANCE=N, AJ_VPADS=2, headless
@@ -16,6 +16,9 @@ Stop with Ctrl-C or SIGTERM: every copy's game, endless.py and bots are
 stopped. Copies start `--stagger` seconds apart so boots don't all load at
 once. Run from the AJBot checkout (endless.py/play2.py/models live here).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import json
 import os
@@ -28,7 +31,7 @@ from pathlib import Path
 
 import nextmatch as nm
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 
 
 def log(msg):
@@ -94,22 +97,85 @@ def sweep(n):
     return hit
 
 
+XVFB_CLIENTS = 2048          # Xvfb's maximum -maxclients
+XVFB_FD_LIMIT = 1800         # restart it past this many open fds (leaked clients)
+XVFB_LOG_CAP = 20 << 20      # bytes of Xvfb output kept per start
+HOOK_FAILS_RESTART = 3       # boots in a row with no hook answer -> suspect the display
+
+
+def xvfb_pid(n):
+    """pid of the Xvfb serving :n, or None."""
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            argv = (d / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        if argv and argv[0].endswith(b"Xvfb") and f":{n}".encode() in argv[1:3]:
+            return int(d.name)
+    return None
+
+
+def xvfb_fds(pid):
+    try:
+        return len(os.listdir(f"/proc/{pid}/fd"))
+    except OSError:
+        return None
+
+
+def _raise_nofile():
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    want = 65536 if hard == resource.RLIM_INFINITY else min(65536, hard)
+    if soft < want:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (want, hard))
+
+
 def start_xvfb(n):
     """A private X server for the headless games, shared by every farm that
-    names the same display; left running when the farm stops."""
+    names the same display; left running when the farm stops.
+
+    Its output goes through `head -c` so a spinning accept() error cannot fill
+    the disk (it once wrote 43 GB), and `cat` keeps draining after the cap so
+    Xvfb never blocks or gets SIGPIPE - with no tie to this process, since
+    Xvfb outlives the farm."""
     sock = Path(f"/tmp/.X11-unix/X{n}")
-    if sock.exists():
+    if sock.exists() and xvfb_pid(n):
         return
-    out = open(HERE / f"xvfb-{n}.log", "ab")
-    subprocess.Popen(["Xvfb", f":{n}", "-screen", "0", "1280x720x24", "-nolisten", "tcp",
-                      "-maxclients", "2048"], stdout=out, stderr=subprocess.STDOUT,
-                     stdin=subprocess.DEVNULL, start_new_session=True)
+    logf = HERE / f"xvfb-{n}.log"
+    cmd = (f"exec Xvfb :{n} -screen 0 1280x720x24 -nolisten tcp -maxclients {XVFB_CLIENTS} 2>&1 "
+           f"| {{ head -c {XVFB_LOG_CAP} > {shlex.quote(str(logf))}; cat > /dev/null; }}")
+    subprocess.Popen(["sh", "-c", cmd], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=_raise_nofile)
     for _ in range(50):
-        if sock.exists():
-            log(f"farm: Xvfb :{n} up (2048 clients)")
+        if sock.exists() and xvfb_pid(n):
+            log(f"farm: Xvfb :{n} up ({XVFB_CLIENTS} clients, pid {xvfb_pid(n)})")
             return
         time.sleep(0.2)
-    raise SystemExit(f"Xvfb :{n} did not start - see xvfb-{n}.log")
+    raise SystemExit(f"Xvfb :{n} did not start - see {logf}")
+
+
+def kill_xvfb(n):
+    """Xvfb ignores SIGTERM once wedged: SIGKILL, then clear its socket/lock."""
+    pid = xvfb_pid(n)
+    if pid:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+        for _ in range(50):
+            if not Path(f"/proc/{pid}").exists():
+                break
+            time.sleep(0.1)
+    for f in (Path(f"/tmp/.X11-unix/X{n}"), Path(f"/tmp/.X{n}-lock")):
+        try:
+            f.unlink()
+        except OSError:
+            pass
+
+
+HOOK_FAILS = [0]             # hook timeouts in a row, over every copy
 
 
 class Copy:
@@ -153,7 +219,7 @@ class Copy:
         log(f"copy {self.n}: game starting (pid {self.game.pid}, port {self.port})")
 
     def start_endless(self):
-        self.endless = self._spawn([sys.executable, str(HERE / "endless.py"),
+        self.endless = self._spawn([sys.executable, str(HERE / "server" / "endless.py"),
                                     "--speed", str(self.a.speed),
                                     # Fair league copies mirror the teams, so
                                     # the score measures the policy, not the draw.
@@ -209,7 +275,7 @@ class Copy:
     def start_bots(self):
         largs, gen = self.league_args()
         self.league_t = league_mtime()
-        self.bots = self._spawn([self.a.python, str(HERE / "play2.py"), "--lockstep",
+        self.bots = self._spawn([self.a.python, str(HERE / "bot" / "play2.py"), "--lockstep",
                                  *largs, *self.a.bot_args], f"bots{self.sfx}.log", HERE, self.env)
         log(f"copy {self.n}: bots started ({' '.join(largs)}" + (f", gen {gen})" if gen else ")"))
 
@@ -244,6 +310,7 @@ class Copy:
                 if now - self.started > self.a.boot_timeout:
                     log(f"copy {self.n}: hook never answered in {self.a.boot_timeout:.0f} s "
                         f"- killing the game")
+                    HOOK_FAILS[0] += 1
                     stop(self.game, grace=30)
                 return
         # A game that hangs after a result screen keeps its process (and hook)
@@ -254,6 +321,7 @@ class Copy:
             log(f"copy {self.n}: no match progress for {quiet / 60:.0f} min - killing the game")
             stop(self.game, grace=30)
             return
+        HOOK_FAILS[0] = 0      # this copy's hook answered: the display works
         if self.endless is None:
             self.start_endless()
             self.bots_after = now + self.a.bots_delay
@@ -272,6 +340,28 @@ class Copy:
             self.start_bots()
 
 
+def xvfb_health(n, copies):
+    """Restart a full or wedged Xvfb: leaked client sockets (games killed while
+    connected) eventually take every slot, and then no game reaches the display."""
+    pid = xvfb_pid(n)
+    fds = xvfb_fds(pid) if pid else None
+    why = None
+    if pid is None:
+        why = "not running"
+    elif fds is not None and fds >= XVFB_FD_LIMIT:
+        why = f"{fds} open fds (limit {XVFB_FD_LIMIT}, {XVFB_CLIENTS} clients max)"
+    elif HOOK_FAILS[0] >= HOOK_FAILS_RESTART:
+        why = f"{HOOK_FAILS[0]} boots in a row with no hook answer"
+    if why is None:
+        return
+    log(f"farm: Xvfb :{n} {why} - restarting it and every copy")
+    for c in copies:
+        c.stop_all()
+    kill_xvfb(n)
+    start_xvfb(n)
+    HOOK_FAILS[0] = 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -279,7 +369,7 @@ def main():
     ap.add_argument("--first", type=int, default=0, help="number of the first copy")
     ap.add_argument("--speed", type=float, default=100)
     from ajbot import local
-    ap.add_argument("--launcher", default=local.get("game.launcher") or str(HERE / "offline_game.sh"))
+    ap.add_argument("--launcher", default=local.get("game.launcher") or str(HERE / "server" / "offline_game.sh"))
     ap.add_argument("--prefix", default=local.get("game.prefix") or os.environ.get("AJ_PREFIX", ""),
                     help="main Proton prefix; copy N uses <prefix>-N")
     ap.add_argument("--game-args", default="-nullrhi -RenderOffScreen")
@@ -327,7 +417,11 @@ def main():
             if stopping:
                 break
             c.step()
+        next_check = 0.0
         while not stopping:
+            if a.xvfb is not None and time.time() >= next_check:
+                next_check = time.time() + 60
+                xvfb_health(a.xvfb, copies)
             for c in copies:
                 c.step()
             time.sleep(5)

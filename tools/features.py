@@ -10,6 +10,8 @@ it (a getter that always returns false), or the situation never arose in the
 recordings. The first is a bug, the second is a data gap - the "coverage"
 column separates them.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import collections

@@ -1,13 +1,16 @@
 """Start the next AJ match directly: write both teams into UBattleSettingWork,
 then travel to a stage through ajhook's native OpenLevel ('L').
 
-    python3 nextmatch.py                      # random teams, random stage
-    python3 nextmatch.py --p1 24,13,4 --p2 1,2,3 --stage St401
+    python3 server/nextmatch.py                      # random teams, random stage
+    python3 server/nextmatch.py --p1 24,13,4 --p2 1,2,3 --stage St401
 
 Needs the offline game with ajhook + AJProbe, in a battle, on its result
 screen, or at the main menu (ajhook runs native calls from its frame pump).
 Both players are set up as humans; endless.py --boot starts from the menu.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse, json, os, random, struct, subprocess, sys
 from pathlib import Path
 import socket
@@ -42,7 +45,7 @@ def call(msg, port=PORT, timeout=10.0):
         s.close()
     return rest[:int(n)].decode("utf-8", "replace")
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 _CF = next(p for p in (HERE / "assets/aj_costumes.json", HERE / "costumes.json") if p.exists())
 COSTUMES = {int(k): v for k, v in json.loads(_CF.read_text()).items()}
 # DT_VsCharSelect in grid order: (ECharacterId, name, category). Story entries
@@ -109,7 +112,7 @@ def wr(a, b):
 def addrs():
     lua = ('out(string.format("0x%x 0x%x", FindFirstOf("BattleSettingWork"):GetAddress(), '
            'FindFirstOf("PlayerController"):GetAddress()))')
-    r = subprocess.run([sys.executable, str(HERE / "ueprobe.py"), lua], capture_output=True,
+    r = subprocess.run([sys.executable, str(HERE / "server" / "ueprobe.py"), lua], capture_output=True,
                        text=True, timeout=30)
     out = r.stdout.split()
     if len(out) < 2:
@@ -159,7 +162,7 @@ def set_free_mode():
     """EVsCharMode FreeBattle (1) on the char-select control. A load from the
     main menu rebuilds that control with mode 0, and the pause menu then
     opens as Training. Call once the battle is up."""
-    r = subprocess.run([sys.executable, str(HERE / "ueprobe.py"), FREE_MODE_LUA],
+    r = subprocess.run([sys.executable, str(HERE / "server" / "ueprobe.py"), FREE_MODE_LUA],
                        capture_output=True, text=True, timeout=30).stdout.strip()
     return r == "1"
 
@@ -182,7 +185,7 @@ def set_speed(n):
            f'FindFirstOf("GameEngine").FixedFrameRate = {60.0 * n} '
            f'out(tostring(w.DemoPlayTimeDilation))')
     try:
-        r = subprocess.run([sys.executable, str(HERE / "ueprobe.py"), lua],
+        r = subprocess.run([sys.executable, str(HERE / "server" / "ueprobe.py"), lua],
                            capture_output=True, text=True, timeout=30).stdout.strip()
         return abs(float(r) - n) < 1e-3
     except (subprocess.TimeoutExpired, OSError, ValueError):

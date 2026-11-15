@@ -16,8 +16,8 @@ From those this builds, per character:
   seg      how long this character's segments usually get before the combo
            drops - the prior for when it should tag the combo onward.
 
-    python combobook.py                       # build models/combobook.json
-    python combobook.py --show Eraserhead     # print one character's page
+    python training/combobook.py                       # build models/combobook.json
+    python training/combobook.py --show Eraserhead     # print one character's page
 """
 import collections
 import glob

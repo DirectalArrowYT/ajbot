@@ -10,6 +10,8 @@
   * game files: tools/doctor.py --fix gamefiles when the release is newer
     than the one installed in the game (skipped while the game is running)
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import json

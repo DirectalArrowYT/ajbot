@@ -14,7 +14,7 @@
 //!   Settings    where AJBot lives and which Python to run.
 //!
 //! This is a front end only: the bot itself still runs as the Python scripts
-//! (play.py / play2.py / record.py), launched as child processes.
+//! (bot/play.py, bot/play2.py, ...), launched as child processes.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -200,7 +200,7 @@ fn find_ajbot_dir() -> String {
         cands.push(cwd);
     }
     for c in cands {
-        if c.join("play.py").exists() && c.join("ajbot").exists() {
+        if c.join("bot").join("play.py").exists() && c.join("ajbot").exists() {
             return c.display().to_string();
         }
     }
@@ -464,7 +464,7 @@ impl App {
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
             .unwrap_or_default();
-        if settings.ajbot_dir.is_empty() || !Path::new(&settings.ajbot_dir).join("play.py").exists() {
+        if settings.ajbot_dir.is_empty() || !Path::new(&settings.ajbot_dir).join("bot").join("play.py").exists() {
             settings.ajbot_dir = find_ajbot_dir();
         }
         // A bundled interpreter (<AJBot>/python/python.exe, as in a copy made
@@ -655,7 +655,7 @@ impl App {
                     a.extend(["--pick-random".into(), "--pick-start".into(), s.pick_start.clone()]);
                     label = format!("{base}: random teams");
                 }
-                Ok(("play.py".into(), a, label))
+                Ok(("bot/play.py".into(), a, label))
             }
             Mode::BotVsBot => {
                 a.push("--model".into());
@@ -698,11 +698,11 @@ impl App {
                         }
                         a.extend(["--a".into(), self.teams[0].join(","),
                                   "--b".into(), self.teams[1].join(",")]);
-                        return Ok(("play2.py".into(), a, format!(
+                        return Ok(("bot/play2.py".into(), a, format!(
                             "Bot vs Bot: endless {} vs {}{vs}",
                             self.teams[0].join("/"), self.teams[1].join("/"))));
                     }
-                    return Ok(("play2.py".into(), a,
+                    return Ok(("bot/play2.py".into(), a,
                                format!("Bot vs Bot: endless random matches{vs}")));
                 }
                 if self.source == TeamSource::Pick {
@@ -715,7 +715,7 @@ impl App {
                     label = format!("Bot vs Bot: {} vs {}",
                                     self.teams[0].join("/"), self.teams[1].join("/"));
                 }
-                Ok(("play2.py".into(), a, label + &vs))
+                Ok(("bot/play2.py".into(), a, label + &vs))
             }
         }
     }
@@ -739,7 +739,7 @@ impl App {
         match self.build_command() {
             Err(e) => self.status = e,
             Ok((script, mut args, label)) => {
-                if !self.settings.control_now.is_empty() && script != "record.py" {
+                if !self.settings.control_now.is_empty() && script != "bot/record.py" {
                     args.push("--control-now".into());
                     args.push(self.settings.control_now.clone());
                     // One-shot: after this run the bot's own memory is right.
@@ -1508,11 +1508,11 @@ impl App {
         let label = format!("Combo practice: {} - {}", s.combo_char, text);
         let r = if s.combo_on_box {
             args.extend(["--launch".into(), "--instance".into(), s.box_instance.to_string()]);
-            Runner::start_remote(&s.box_host, &s.box_dir, &s.box_python, "practice.py", &args,
+            Runner::start_remote(&s.box_host, &s.box_dir, &s.box_python, "bot/practice.py", &args,
                                  &[], &label)
         } else {
             args.extend(["--instance".into(), "0".into(), "--speed".into(), "1".into()]);
-            Runner::start(&s.python, &self.dir(), "practice.py", &args, &label)
+            Runner::start(&s.python, &self.dir(), "bot/practice.py", &args, &label)
         };
         match r {
             Ok(r) => {
@@ -1596,11 +1596,11 @@ impl App {
         let label = format!("Combo watch: {} - {}", display(&r.char_), r.name);
         let res = if s.combo_on_box {
             args.extend(["--launch".into(), "--instance".into(), s.box_instance.to_string()]);
-            Runner::start_remote(&s.box_host, &s.box_dir, &s.box_python, "practice.py", &args,
+            Runner::start_remote(&s.box_host, &s.box_dir, &s.box_python, "bot/practice.py", &args,
                                  &[], &label)
         } else {
             args.extend(["--instance".into(), "0".into(), "--speed".into(), "1".into()]);
-            Runner::start(&s.python, &self.dir(), "practice.py", &args, &label)
+            Runner::start(&s.python, &self.dir(), "bot/practice.py", &args, &label)
         };
         match res {
             Ok(run) => {
@@ -1911,11 +1911,11 @@ impl App {
                     ui.end_row();
                 });
                 ui.add_space(4.0);
-                if self.dir().join("play.py").exists() {
-                    ui.label(egui::RichText::new(format!("found play.py · {} characters · {} icons",
+                if self.dir().join("bot").join("play.py").exists() {
+                    ui.label(egui::RichText::new(format!("found bot/play.py · {} characters · {} icons",
                         self.roster.len(), self.icons.len())).color(theme::MUTED));
                 } else {
-                    ui.colored_label(theme::BAD, "play.py not found in that folder");
+                    ui.colored_label(theme::BAD, "bot/play.py not found in that folder");
                 }
             });
             ui.add_space(8.0);

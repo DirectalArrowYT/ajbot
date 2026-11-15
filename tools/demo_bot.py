@@ -9,6 +9,8 @@ Start a local/training match, then alt-tab back and run this.
 The virtual pad appears as an extra Xbox controller, so assign it to the
 slot you want the bot to drive (P1 or P2).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import sys
 import time

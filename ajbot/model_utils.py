@@ -2,7 +2,7 @@
 inside play.py / play2.py / record.py.
 
 A class defined directly in train.py pickles with __module__ == "__main__",
-because that is how it is always run (`python train.py ...`). Loading that
+because that is how it is always run (`python training/train.py ...`). Loading that
 same pickle from any OTHER script's __main__ - which is exactly what
 agent.py's Agent does when it loads models/policy.pkl - fails, because that
 script's __main__ has no such class. Anything shipped inside a policy has to

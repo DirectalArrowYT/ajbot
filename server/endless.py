@@ -1,10 +1,10 @@
 """Endless matches: when a match ends, start the next one with random teams
 and a random stage - no menus.
 
-    python3 endless.py                 # forever
-    python3 endless.py --matches 5     # stop after 5 new matches
-    python3 endless.py --all           # random picks include Story/DLC entries
-    python3 endless.py --stage random  # any free-battle stage (default: the gym, St809)
+    python3 server/endless.py                 # forever
+    python3 server/endless.py --matches 5     # stop after 5 new matches
+    python3 server/endless.py --all           # random picks include Story/DLC entries
+    python3 server/endless.py --stage random  # any free-battle stage (default: the gym, St809)
 
 Needs the offline game with ajhook + AJProbe. Start it right after launching
 the game: it waits for the hook; at the title it waits for the save to load,
@@ -22,6 +22,9 @@ Match end = the game log reaching "OnBeginBattleSequence = EventVictory" (the
 result screen). ajhook's native pump still runs there, so the next OpenLevel
 works from it.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import glob
 import json
@@ -34,7 +37,7 @@ from pathlib import Path
 
 import nextmatch as nm
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 # Match end = the game's own battle sequence reaching the result screen. It
 # logs every phase change ("OnBeginBattleSequence = Battle", ... "BattleEnd*",
 # "BeforeEventVictory", "EventVictory"). In a free battle EventVictory IS the
@@ -80,7 +83,7 @@ def hook_alive():
 
 def probe(lua, timeout=20):
     try:
-        r = subprocess.run([sys.executable, str(HERE / "ueprobe.py"), lua],
+        r = subprocess.run([sys.executable, str(HERE / "server" / "ueprobe.py"), lua],
                            capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
     except subprocess.TimeoutExpired:

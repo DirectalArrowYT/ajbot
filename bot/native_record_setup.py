@@ -1,7 +1,7 @@
 """One-shot setup call for native (in-DLL) recording - installs the resident
 sampler and starts the hook writing ticks itself, then exits immediately.
 
-    python native_record_setup.py <output-path> [--every N]
+    python bot/native_record_setup.py <output-path> [--every N]
 
 This is the ONE piece of the native-recording path that still needs Python:
 the resident sampler's Lua source (ajbot.sampler.RESIDENT) is hundreds of
@@ -13,6 +13,9 @@ the pipe; see gui/src/hookpipe.rs and ajbot/hook.py.
 After this exits, the DLL keeps recording on its own until a stop ('X')
 opcode is sent - no Python process needs to stay running.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import sys
 

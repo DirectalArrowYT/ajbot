@@ -1,10 +1,10 @@
 """Retrain on another machine, so this PC stays free for the game and self-play.
 
-    python remote_retrain.py            # sync, run the full retrain there, pull the policy back
-    python remote_retrain.py --sync     # only copy code / digests / caches over
-    python remote_retrain.py --pull     # only fetch the remote's latest policy
-    python remote_retrain.py --args "--cherrypick"   # train.py flags instead of the quick default
-    python remote_retrain.py --host laptop           # the old target
+    python training/remote_retrain.py            # sync, run the full retrain there, pull the policy back
+    python training/remote_retrain.py --sync     # only copy code / digests / caches over
+    python training/remote_retrain.py --pull     # only fetch the remote's latest policy
+    python training/remote_retrain.py --args "--cherrypick"   # train.py flags instead of the quick default
+    python training/remote_retrain.py --host laptop           # the old target
 
 Targets (servers in ajbot_local.json): "server" (default) is a Linux box - 32 threads,
 shared with LLMs, image gen and a nightly test run, so training there runs
@@ -29,6 +29,9 @@ The laptop (i7-1065G7, 8 threads, no CUDA) is several times slower than this
 PC for training, but it is otherwise idle: the point is that a retrain no
 longer competes with the game, self-play recording or builds here.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import json
 import os
@@ -56,7 +59,7 @@ def use_host(name):
     h = HOSTS.get(name) or _local.server(name)
     HOST, REMOTE, PY, LINUX = h["host"], h["dir"], h["python"], h["linux"]
     SSH = ["C:/Windows/System32/OpenSSH/ssh.exe", "-o", "BatchMode=yes", HOST]
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 
 CODE_EXCLUDE = ("runs", "botruns", "cache", "archive", "gui", "ajhook", "__pycache__",
                 "models/prev", ".git", "stats/control_modes")
@@ -293,7 +296,7 @@ def sync(keep_local=False):
                        input=b"{}")
     if r.returncode != 0:
         raise SystemExit("could not write the stub table there")
-    ssh(f"cd {REMOTE} && {PY} remote_retrain.py --make-stubs")
+    ssh(f"cd {REMOTE} && {PY} training/remote_retrain.py --make-stubs")
 
 
 def _quiet_hours():
@@ -309,15 +312,15 @@ def train(args, force=False):
     py = f"{PY} -u"
     steps = [
         f"{py} -m ajbot.tickcache",
-        f"{py} mine.py --quiet --top 5",
-        f"{py} combobook.py",
+        f"{py} training/mine.py --quiet --top 5",
+        f"{py} training/combobook.py",
         f"{py} -m ajbot.moveinfo",
         # Contact chance / timing per move, combo-damage-to-come, escape and
         # resource success by state: the rule layers (defence, emergency
         # dodge, Plus Ultra / Rising) read it. models/movedata.json is built
         # locally from the FModel export and travels with the code.
         f"{py} -m ajbot.threat",
-        f"{py} train.py --include-bot --save models {args}",
+        f"{py} training/train.py --include-bot --save models {args}",
     ]
     pre = f"cd {REMOTE}"
     if LINUX:

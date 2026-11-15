@@ -170,6 +170,11 @@ def _move(code, chunk):
 
 def _names():
     try:
+        import sys
+        from pathlib import Path
+        srv = str(Path(__file__).resolve().parent.parent / "server")
+        if srv not in sys.path:
+            sys.path.append(srv)          # nextmatch.py lives in server/
         import nextmatch as nm
         return [n for _, n, _ in nm.MENU]
     except ImportError:

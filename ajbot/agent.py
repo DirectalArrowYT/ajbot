@@ -475,7 +475,7 @@ class Agent:
             raise RuntimeError(
                 f"policy expects {want} features but the current code builds "
                 f"{x.shape[1]}. The feature set changed since it was trained - "
-                f"retrain with:  python train.py --save models"
+                f"retrain with:  python training/train.py --save models"
             )
 
     @staticmethod

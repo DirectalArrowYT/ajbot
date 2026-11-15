@@ -1,8 +1,8 @@
 """Behaviour-cloning baselines for both heads.
 
-    python train.py                  # both heads, newest run
-    python train.py --runs "runs/*.jsonl"
-    python train.py --mode frames    # action head on every tick (see warning)
+    python training/train.py                  # both heads, newest run
+    python training/train.py --runs "runs/*.jsonl"
+    python training/train.py --mode frames    # action head on every tick (see warning)
 
 Two separate problems:
   action   - classification over ECommandIds, judged against always guessing
@@ -13,6 +13,9 @@ Two separate problems:
 Splits are chronological. A random split leaks, because neighbouring ticks are
 nearly the same moment.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import collections
 import glob

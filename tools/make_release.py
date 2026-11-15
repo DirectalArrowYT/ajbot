@@ -17,6 +17,8 @@ Upload both files to a new release on GitHub; tools/doctor.py --fix gamefiles
 installs the zip on other machines. Trained models go up separately
 (models.zip) when you choose to share them.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import datetime

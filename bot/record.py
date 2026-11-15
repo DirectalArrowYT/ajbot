@@ -1,8 +1,8 @@
 """Record (state, action) pairs from live play into JSONL for behaviour cloning.
 
-    python record.py                       # record until Ctrl-C
-    python record.py --hz 20 --out runs/session1.jsonl
-    python record.py --show                # print snapshots, write nothing
+    python bot/record.py                       # record until Ctrl-C
+    python bot/record.py --hz 20 --out runs/session1.jsonl
+    python bot/record.py --show                # print snapshots, write nothing
 
 Each line is one tick: every character's state keyed by role, plus the action
 your character was executing. `cmd` is the engine's own ECommandId, so the
@@ -12,6 +12,9 @@ Play normally while this runs - it only reads. It keeps going across
 matches: each one gets its own runs/ file and a line in stats/matches.jsonl
 (mode 'human'), so the command line never needs restarting.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import json
 import sys

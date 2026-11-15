@@ -1,8 +1,8 @@
 """Download the league champion from the box into models/.
 
-    python pull_champion.py           # install if the champion is new
-    python pull_champion.py --check   # only say what the box has
-    python pull_champion.py --force   # reinstall even if policy.pkl matches
+    python training/pull_champion.py           # install if the champion is new
+    python training/pull_champion.py --check   # only say what the box has
+    python training/pull_champion.py --force   # reinstall even if policy.pkl matches
 
 What it does:
   1. asks the box for champion_gen and the sha256 of policy.pkl + its data files
@@ -14,6 +14,9 @@ What it does:
 
 Uses Windows OpenSSH (the key lives in the Windows agent).
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import hashlib
 import json
@@ -38,7 +41,7 @@ FILES = ["policy.pkl", "combobook.json", "moveinfo.json", "combos.json",
 SHARED = ["drilled_routes.json"]
 SHARED_DIR = f"{_SRV['dir']}/models"
 KEEP_BACKUPS = 3
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent   # the repo root
 MODELS = HERE / "models"
 STAMP = MODELS / "champion.json"     # what was installed last
 

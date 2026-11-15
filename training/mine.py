@@ -1,11 +1,11 @@
 """Mine the recordings for combos that worked, and report what the bot knows.
 
-    python mine.py                          # everything, human and bot runs
-    python mine.py --bot                    # only the bot's own runs
-    python mine.py --character Bakugo       # drill into one fighter
-    python mine.py --top 20                 # the single best combos found
-    python mine.py --save models/combos.json
-    python mine.py --min-damage .08 --top-frac .3     # a stricter cut
+    python training/mine.py                          # everything, human and bot runs
+    python training/mine.py --bot                    # only the bot's own runs
+    python training/mine.py --character Bakugo       # drill into one fighter
+    python training/mine.py --top 20                 # the single best combos found
+    python training/mine.py --save models/combos.json
+    python training/mine.py --min-damage .08 --top-frac .3     # a stricter cut
 
 This is the inspection side of ajbot.combos. It answers three questions:
 
@@ -17,6 +17,9 @@ The last one is the point of doing this at all. A 71-strong roster cannot be
 covered by recording human matches, so the bot has to supply its own examples;
 this says where it still has none.
 """
+import os, sys  # noqa: E401
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
+import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
 import argparse
 import collections
 import glob
