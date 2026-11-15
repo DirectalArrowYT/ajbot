@@ -187,8 +187,13 @@ def parse_args():
                     help="what the control-mode screen shows RIGHT NOW for "
                          "every row (it remembers between matches); only "
                          "needed after changing it by hand")
+    ap.add_argument("--routes", action="store_true",
+                    help="press known combo routes (authored, drilled, mined, the "
+                         "game's CPU combos) over the model's own picks. Off by "
+                         "default: the bot learns combos in training (route reward, "
+                         "drills) instead of being driven through them in a match")
     ap.add_argument("--no-routes", action="store_true",
-                    help="do not follow the routes in models/authored_routes.json")
+                    help=argparse.SUPPRESS)   # the old opt-out; routes are off by default now
     ap.add_argument("--no-book", action="store_true",
                     help="do not use models/combobook.json to extend combos")
     ap.add_argument("--no-stats", action="store_true",
@@ -344,7 +349,7 @@ class Bot:
             book = None if args.no_book else combobook.load(datadir.path_in(self.data_dir, "combobook.json"))
             self.combo = combobook.ComboPolicy(book) if book else None
             self.book_raw = book
-            self.route = None if args.no_routes else routebook.RouteFollower(routebook.load_all(self.data_dir))
+            self.route = None if (args.no_routes or not args.routes) else routebook.RouteFollower(routebook.load_all(self.data_dir))
         self.chain = ChainTracker()
         self.match_combos = []
         for pol in (self.tagger, self.resources, self.escaper):

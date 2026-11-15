@@ -121,8 +121,13 @@ def parse_args():
                     help="what the control-mode screen shows RIGHT NOW for "
                          "every row (it remembers between matches); only "
                          "needed after changing it by hand")
+    ap.add_argument("--routes", action="store_true",
+                    help="press known combo routes (authored, drilled, mined, the "
+                         "game's CPU combos) over the model's own picks. Off by "
+                         "default: the bot learns combos in training (route reward, "
+                         "drills) instead of being driven through them in a match")
     ap.add_argument("--no-routes", action="store_true",
-                    help="do not follow the routes in models/authored_routes.json")
+                    help=argparse.SUPPRESS)   # the old opt-out; routes are off by default now
     ap.add_argument("--no-book", action="store_true",
                     help="do not use models/combobook.json to extend combos")
     ap.add_argument("--critic-beta", type=float, default=1.0,
@@ -313,7 +318,7 @@ def main():
               f"{len(combo.chars)} characters")
     elif not args.no_book:
         print("no combo book yet - build one with: python training/combobook.py")
-    route = None if args.no_routes else routebook.RouteFollower(routebook.load_all(Path(args.model).parent))
+    route = None if (args.no_routes or not args.routes) else routebook.RouteFollower(routebook.load_all(Path(args.model).parent))
     if route:
         print(f"authored routes: {', '.join(sorted(route.routes))}; "
               f"CPU combo routes for {len(route.ai_routes)} characters")
@@ -698,7 +703,7 @@ def main():
             elif pad:
                 # Mid-combo, the combo book knows which continuation keeps the
                 # hits coming longest for this character.
-                # An authored route (models/authored_routes.json) outranks the
+                # With --routes, a known route (models/authored_routes.json) outranks the
                 # mined book: someone who knows the character wrote it down.
                 if route:
                     rs = route.suggest(me, action, lambda a: a in ACTION_MAP

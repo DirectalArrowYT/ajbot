@@ -31,8 +31,9 @@ Each copy takes the next route and runs practice.py on it (a training-mode
 match, d-pad Left resets between attempts) until it is down, given up, or
 --max-attempts. Timing offsets carry over between rounds (models/
 demo_routes.json). A route that landed goes into models/drilled_routes.json,
-which the route follower in matches (ajbot.routes.load_all) and the route
-reward in training both read, so the bots go for it in real games.
+which the route reward in training reads: the policy is rewarded when its
+own picks follow a landed route, so the bots learn to go for it in real
+games. (Matches only press routes outright with play.py/play2.py --routes.)
 
 Stop the farm first (it uses the same copies); stop the drill with Ctrl-C,
 SIGTERM, or by creating drill.stop. Progress goes to drill.log, each copy's
