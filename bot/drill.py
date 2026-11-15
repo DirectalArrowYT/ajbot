@@ -1,4 +1,4 @@
-"""Combo drill: the farm's game copies practise long combos instead of playing.
+"""Combo drill: the farm's game copies practice long combos instead of playing.
 
     python3 bot/drill.py                         # copies 0-3, every long route once
     python3 bot/drill.py --copies 2 --min-steps 10 --max-attempts 200
@@ -224,7 +224,7 @@ def from_recording(src, name, corpus):
 
 
 def candidates(a):
-    """[route dict] to practise, longest first."""
+    """[route dict] to practice, longest first."""
     menu = menu_chars()
     out, seen = [], set()
 

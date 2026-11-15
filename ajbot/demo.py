@@ -1,5 +1,5 @@
 """Demo routes: a combo someone played, written down with its timing so a bot
-can practise it (practice.py).
+can practice it (practice.py).
 
 A route here is what ajbot.routes calls a route - a list of decision labels
 (Melee, ExUnique1, Dodge, ...) that agent.ACTION_MAP can press - plus WHEN each
@@ -498,7 +498,7 @@ def main(argv=None):
         print(f"{r['name']}  [{r['char']}, {len(r['steps'])} steps, from {r.get('source')}]")
         print(f"  {_fmt_steps(r['steps'])}")
         if best is not None:
-            print(f"  practised: best {best}/{len(r['steps'])} steps, "
+            print(f"  practiced: best {best}/{len(r['steps'])} steps, "
                   f"landed {lr.get('landed', 0)}/{lr.get('attempts', 0)}")
     return 0
 

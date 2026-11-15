@@ -257,7 +257,7 @@ def learn_gaps(files, char, side="me", max_gap_s=0.9, exact=False, combo=False):
             last = (lab, now)
     if exact:      # a recording of the combo itself: every pair, as played
         return {k: sorted(v)[len(v) // 2] for k, v in pairs.items()}
-    if combo:      # practising a combo: links inside strings, seen twice or more
+    if combo:      # practicing a combo: links inside strings, seen twice or more
         return {k: sorted(v)[len(v) // 2] for k, v in pairs.items() if len(v) >= 2}
     # The quick end of what they did: medians mix in neutral play, where a
     # player waits after a move; inside a combo they go about this fast.
@@ -400,7 +400,7 @@ def parse(text, char, use_routes=True):
         # like Aizawa's Q4 before the last CA). Shorter ones the search finds,
         # and training-mode play is often slower than the combo needs.
         exact = ((learned.get("_exact") or {}).get(point) or {}).get(pair)
-        # A recording of the player practising combos (--learn-gaps --combo):
+        # A recording of the player practicing combos (--learn-gaps --combo):
         # how fast they link these two inside a string - the best first guess.
         combo = ((learned.get("_combo") or {}).get(point) or {}).get(pair)
         if combo is not None:
@@ -542,7 +542,7 @@ def main(argv=None):
                          "step, from the clean tries of it in the recordings")
     ap.add_argument("--combo", action="store_true",
                     help="with --learn-gaps: the recordings are of combos being "
-                         "practised - learn the links inside strings (under 2 s); "
+                         "practiced - learn the links inside strings (under 2 s); "
                          "these win over every other guess")
     ap.add_argument("--side", choices=("me", "enemy"), default="me",
                     help="with --learn-gaps: the recorder's fighter or the opponent's")

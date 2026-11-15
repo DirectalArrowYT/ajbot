@@ -870,7 +870,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("route", nargs="?", help="demo route name (python -m ajbot.demo show)")
-    ap.add_argument("--notation", help="practise this combo notation instead "
+    ap.add_argument("--notation", help="practice this combo notation instead "
                     "(AAA > Q1 > Dodge Cancel > ...; see ajbot/notation.py)")
     ap.add_argument("--route-json", help="a saved route given as JSON (the GUI passes the "
                     "one picked, so it plays on any machine's game)")

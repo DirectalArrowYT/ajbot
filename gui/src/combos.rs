@@ -2,8 +2,8 @@
 //! editor with an explicit Save, and practice / watch controls.
 //!
 //! Saved combos live in models/demo_routes.json (written by ajbot.notation
-//! --save, by practice.py after it practises, and deleted with ajbot.demo
-//! delete). Practising still saves on its own, with what it learned.
+//! --save, by practice.py after it practices, and deleted with ajbot.demo
+//! delete). Practicing still saves on its own, with what it learned.
 
 use crate::runner::sh_quote;
 use crate::theme::{self, BAD, GOOD, MUTED, ORANGE, WARN};
@@ -206,7 +206,7 @@ impl App {
                                 if ui.add_enabled(!running, egui::Button::new("▶ Watch").small())
                                     .on_hover_text(
                                         "Play it with the timing practice learned - nothing is tuned \
-                                         or saved. Times and where it runs are set under Practise.")
+                                         or saved. Times and where it runs are set under Practice.")
                                     .clicked()
                                 {
                                     watch = Some((*r).clone());
@@ -218,7 +218,7 @@ impl App {
                                 } else if r.learned {
                                     theme::pill(ui, "timing learned", GOOD);
                                 } else {
-                                    theme::pill(ui, "not practised", MUTED);
+                                    theme::pill(ui, "not practiced", MUTED);
                                 }
                             }
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
@@ -347,7 +347,7 @@ impl App {
     }
 
     fn ui_combo_practice(&mut self, ui: &mut egui::Ui, running: bool) {
-        theme::titled_card(ui, "Practise", |ui| {
+        theme::titled_card(ui, "Practice", |ui| {
             ui.label(RichText::new(
                 "The bot walks up to a standing dummy on the gym and repeats the combo, tuning the \
                  timing of each step until it lands it. What it learns is saved with the combo.")
@@ -384,7 +384,7 @@ impl App {
             ui.horizontal(|ui| {
                 let has_text = !self.settings.combo_text.trim().is_empty();
                 if ui.add_enabled(!running && has_text, egui::Button::new(
-                    RichText::new("▶ Practise").strong().color(egui::Color32::BLACK)).fill(ORANGE))
+                    RichText::new("▶ Practice").strong().color(egui::Color32::BLACK)).fill(ORANGE))
                     .clicked()
                 {
                     self.saved_pick = Some(self.combo_save_name());
@@ -491,7 +491,7 @@ impl App {
     pub(crate) fn ui_combos(&mut self, ui: &mut egui::Ui) {
         let running = self.runner.is_some() || self.native_recorder.is_some();
         theme::page_title(ui, "Combos",
-            "Write a combo the way players do, save it, and let the bot practise it on a dummy.");
+            "Write a combo the way players do, save it, and let the bot practice it on a dummy.");
         self.refresh_preview(ui.ctx());
         egui::ScrollArea::vertical().id_salt("combos_page").auto_shrink([false, false]).show(ui, |ui| {
             ui.columns(2, |cols| {

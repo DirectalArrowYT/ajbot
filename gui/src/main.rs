@@ -9,7 +9,7 @@
 //!               which the Python side appends to after every match.
 //!   Combos      combo tester: type a combo the way players write it
 //!               (AAA > Q1 > Dodge Cancel > ...), see it parsed, and have the
-//!               bot practise it until it lands (practice.py), on the box's
+//!               bot practice it until it lands (practice.py), on the box's
 //!               headless game copy or on this PC's game.
 //!   Settings    where AJBot lives and which Python to run.
 //!
@@ -355,7 +355,7 @@ fn route_updated(r: &serde_json::Value) -> i64 {
 }
 
 /// Merge the box's saved combos into this folder's file: new names are
-/// added, and a name both have keeps whichever was practised last.
+/// added, and a name both have keeps whichever was practiced last.
 fn merge_box_routes(local: &Path, host: &str, box_dir: &str) -> Result<String, String> {
     let remote = format!("{}/models/demo_routes.json", box_dir.trim_end_matches('/'));
     let out = std::process::Command::new("ssh")
@@ -1728,7 +1728,7 @@ impl App {
             theme::titled_card(ui, "Combo practice machine", |ui| {
                 ui.label(egui::RichText::new(
                     "ssh host, AJBot folder and Python on the machine with the headless game copies \
-                     (optional - combos can be practised on this PC).").color(theme::MUTED));
+                     (optional - combos can be practiced on this PC).").color(theme::MUTED));
                 egui::Grid::new("settings_box").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
                     ui.label("ssh host");
                     ui.add(egui::TextEdit::singleline(&mut self.settings.box_host).desired_width(260.0)
