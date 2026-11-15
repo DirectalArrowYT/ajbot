@@ -13,6 +13,7 @@ recording with no opponent is not "somewhat useful", so unlike combo-quality
 filtering this is safe to act on permanently. Defaults to a dry run because
 moving files is still worth seeing before it happens.
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import glob
 import shutil

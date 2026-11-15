@@ -5,7 +5,7 @@ took the corpus scan from "slow" to "memory maxed out, CPU barely doing
 anything" (thrashing, not computing) - 20 workers each loading their own
 multi-hundred-MB recording at once can exceed a 16GB machine's RAM even
 when every individual file is unremarkable, and catastrophically so if one
-file is oversized (see prune_stale_chars.py for how that happened here).
+file is oversized (see tools/prune_stale_chars.py for how that happened here).
 Workers should scale with how much memory the files actually in flight need,
 capped by cores as a ceiling, not the other way around.
 """

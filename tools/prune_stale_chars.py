@@ -19,6 +19,7 @@ once. Originals are archived (gzip) before being replaced, never deleted.
     python prune_stale_chars.py --apply
     python prune_stale_chars.py --apply --min-size-mb 10
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import glob
 import gzip

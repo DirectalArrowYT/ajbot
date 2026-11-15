@@ -40,6 +40,8 @@ pub type Rec = Arc<Mutex<Option<RecStatus>>>;
 enum Stop {
     File(PathBuf),
     Remote { host: String, file: String },
+    /// One-shot tools (setup fixes, sync, pull): stopping just ends them.
+    Kill,
 }
 
 pub struct Runner {
@@ -100,6 +102,25 @@ impl Runner {
 
         let shown = format!("> {python} -u {script} {}", args.join(" "));
         Self::spawn(cmd, python, shown, label, Stop::File(stop_file))
+    }
+
+    /// Run any program to completion (setup fixes, pip, sync/pull scripts),
+    /// with no stop file: Stop kills it.
+    pub fn start_plain(program: &str, dir: &Path, args: &[String], label: &str)
+        -> Result<Runner, String>
+    {
+        let mut cmd = Command::new(program);
+        cmd.args(args)
+            .current_dir(dir)
+            .env("PYTHONIOENCODING", "utf-8")
+            .env("PYTHONUNBUFFERED", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        #[cfg(windows)]
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let shown = format!("> {program} {}", args.join(" "));
+        Self::spawn(cmd, program, shown, label, Stop::Kill)
     }
 
     /// Run a script on another machine over ssh (the box's headless game
@@ -176,6 +197,9 @@ impl Runner {
                         .args(["-o", "BatchMode=yes", host.as_str(), &format!("touch {}", sh_quote(file))])
                         .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
                         .spawn();
+                }
+                Stop::Kill => {
+                    let _ = self.child.kill();
                 }
             }
             self.stop_requested = Some(Instant::now());

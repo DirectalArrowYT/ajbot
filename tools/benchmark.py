@@ -14,6 +14,7 @@ The numbers worth watching after a retrain:
   dealt-taken mean health bars dealt minus taken per match (3 bars a team)
   combo       mean best-combo damage per match
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import collections
 import json

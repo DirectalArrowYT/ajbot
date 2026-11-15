@@ -844,7 +844,7 @@ def dedupe(snap):
 
 # Mirrors dataset.BENCH_AGE - nothing downstream of a recording ever reads a
 # chars[] entry past this age unless it is named by me/enemy/mine/theirs for
-# that tick (see prune_stale_chars.py's audit of every consumer). Duplicated
+# that tick (see tools/prune_stale_chars.py's audit of every consumer). Duplicated
 # here rather than imported: dataset.py already imports FROM this module.
 STALE_AGE = 3000
 

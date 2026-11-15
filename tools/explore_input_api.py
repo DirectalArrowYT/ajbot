@@ -16,6 +16,7 @@ at that instant, so this polls several times to cover more than one.
 Paste the output back - it's the map for deciding what the resident
 sampler chunk should actually read going forward.
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import time
 
 from ajbot.hook import Hook, HookError

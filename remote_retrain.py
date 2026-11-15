@@ -19,7 +19,7 @@ still matches), checked by sha256 on both sides, and only then deleted
 here. So runs/ and botruns/ here only ever hold what has not been trained on
 yet, and the remote holds the corpus. Recordings permanent_defect() rejects
 are never sent - they stay here for you to archive or delete
-(archive_junk.py). --keep-local copies without deleting.
+(tools/archive_junk.py). --keep-local copies without deleting.
 
 Older remotes got an empty placeholder per recording plus its real size and
 mtime in cache/stubs.json; any placeholder left there for a recording that
@@ -272,7 +272,7 @@ def sync(keep_local=False):
     good = [r for r in recs if r not in set(junk)]
     if junk:
         print(f"  {len(junk)} recordings are permanently unusable - kept here, not sent "
-              "(python archive_junk.py lists them)")
+              "(python tools/archive_junk.py lists them)")
     push(code_files(), "code, settings, stats")
     loc = local_files(["cache"])
     rem = remote_files(["cache"])

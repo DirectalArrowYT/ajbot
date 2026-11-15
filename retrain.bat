@@ -35,10 +35,10 @@ echo === digesting new recordings (cache\ticks\, parsed once, reused by every st
 
 echo.
 echo === archiving structurally broken recordings (archive\junk\) ===
-%PYTHON% archive_junk.py --apply
+%PYTHON% tools\archive_junk.py --apply
 if errorlevel 1 (
     echo.
-    echo archive_junk.py failed - carrying on to training anyway.
+    echo tools\archive_junk.py failed - carrying on to training anyway.
 )
 
 echo.
@@ -99,8 +99,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo === results so far, per policy version (benchmark.py) ===
-%PYTHON% benchmark.py --since 2026-09-21
+echo === results so far, per policy version (tools\benchmark.py) ===
+%PYTHON% tools\benchmark.py --since 2026-09-21
 
 echo.
 echo Done. New policy in models\policy.pkl

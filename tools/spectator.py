@@ -21,6 +21,7 @@ This reuses build_weighted()'s exact tick-selection logic (dataset.py) so
 per-sample context (character, distance, hp lead, situation) captured
 alongside, which training's own arrays() throws away.
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import collections
 import glob

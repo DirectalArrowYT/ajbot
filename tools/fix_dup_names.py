@@ -5,6 +5,7 @@ characters. Writes stats/matches.jsonl.bak_pre_dup first.
     python fix_dup_names.py            # do it
     python fix_dup_names.py --dry      # only count
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import json
 import shutil
 import sys

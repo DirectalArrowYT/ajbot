@@ -10,6 +10,7 @@ Grid geometry is derived from the game's own DT_VsCharSelect ordering and was
 verified against the live screen, so picks should be exact. The one assumption
 left is where the cursor starts (--start, default the top-left cell).
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import sys
 import time
 

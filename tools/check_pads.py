@@ -11,6 +11,7 @@ can confirm the adapter is back to one slot BEFORE launching a match.
     python check_pads.py            # one snapshot
     python check_pads.py --watch    # keep printing on every change (Ctrl+C to stop)
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import time
 

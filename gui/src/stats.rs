@@ -169,7 +169,7 @@ impl Stats {
             Err(_) => {
                 self.matches.clear();
                 self.error = Some(format!("no stats yet ({} not found) - play a match, \
-                    or run `python stats_backfill.py` to import old recordings", path.display()));
+                    or run `python tools/stats_backfill.py` to import old recordings", path.display()));
             }
         }
         self.loaded_mtime = mtime;

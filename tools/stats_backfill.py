@@ -20,6 +20,7 @@ Only recordings made since the action wrappers went in carry the intro and
 victory poses; older ones can still end a match on a team KO, and otherwise
 come out as a single 'none' session (training mode, or no clear result).
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import glob
 import json

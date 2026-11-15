@@ -33,3 +33,9 @@ models/champion.json
 .pull_tmp_*/
 /models
 ajbot_local.json
+
+# Root-level logs and bundles (logs/ is the place; these are per-machine)
+/*.log
+/practice.jsonl
+/models.7z
+/dist/

@@ -22,16 +22,20 @@ mod charts;
 mod hookpipe;
 mod record_control;
 mod runner;
+mod setup;
 mod stats;
+mod theme;
+mod train;
 
 use charts::{bar_row, win_rate_color};
 use eframe::egui;
 use runner::Runner;
 use serde::{Deserialize, Serialize};
 use stats::{Filter, Stats};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
+use theme::{ORANGE, WIDGET};
 
 const ICON_W: f32 = 100.0;
 const ICON_H: f32 = 60.0;
@@ -270,52 +274,26 @@ fn load_icon(ctx: &egui::Context, path: &Path) -> Option<egui::TextureHandle> {
     Some(ctx.load_texture(path.display().to_string(), color, egui::TextureOptions::LINEAR))
 }
 
-// --------------------------------------------------------------------- theme
-
-// Dark purple with orange accents.
-const BG: egui::Color32 = egui::Color32::from_rgb(0x17, 0x0e, 0x22);
-const PANEL: egui::Color32 = egui::Color32::from_rgb(0x1f, 0x13, 0x2e);
-const WIDGET: egui::Color32 = egui::Color32::from_rgb(0x2e, 0x1c, 0x44);
-const HOVER: egui::Color32 = egui::Color32::from_rgb(0x44, 0x2a, 0x63);
-const STRIPE: egui::Color32 = egui::Color32::from_rgb(0x26, 0x18, 0x38);
-const TEXT: egui::Color32 = egui::Color32::from_rgb(0xe9, 0xdf, 0xf5);
-const ORANGE: egui::Color32 = egui::Color32::from_rgb(0xff, 0x8a, 0x1f);
-const ORANGE_DIM: egui::Color32 = egui::Color32::from_rgb(0xb8, 0x5c, 0x10);
-
-fn apply_theme(ctx: &egui::Context) {
-    let mut v = egui::Visuals::dark();
-    v.panel_fill = PANEL;
-    v.window_fill = PANEL;
-    v.extreme_bg_color = BG;
-    v.faint_bg_color = STRIPE;
-    v.hyperlink_color = ORANGE;
-    v.selection.bg_fill = ORANGE_DIM;
-    v.selection.stroke = egui::Stroke::new(1.0, ORANGE);
-    v.override_text_color = Some(TEXT);
-    v.widgets.noninteractive.bg_fill = PANEL;
-    v.widgets.noninteractive.weak_bg_fill = PANEL;
-    v.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, WIDGET);
-    v.widgets.inactive.bg_fill = WIDGET;
-    v.widgets.inactive.weak_bg_fill = WIDGET;
-    v.widgets.hovered.bg_fill = HOVER;
-    v.widgets.hovered.weak_bg_fill = HOVER;
-    v.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, ORANGE);
-    v.widgets.active.bg_fill = ORANGE_DIM;
-    v.widgets.active.weak_bg_fill = ORANGE_DIM;
-    v.widgets.active.bg_stroke = egui::Stroke::new(1.0, ORANGE);
-    v.widgets.open.bg_fill = HOVER;
-    v.widgets.open.weak_bg_fill = HOVER;
-    ctx.set_visuals(v);
-}
-
 // ----------------------------------------------------------------------- app
 
 #[derive(PartialEq, Clone, Copy)]
 enum Tab {
+    Setup,
     Play,
     Combos,
     Stats,
+    Train,
     Settings,
+}
+
+/// One step of a one-shot job list (setup fixes, sync then pull, updates):
+/// run to completion, then the next step starts.
+pub(crate) struct Job {
+    pub program: String,
+    pub args: Vec<String>,
+    pub label: String,
+    /// Re-run the Setup checks once the list finishes.
+    pub recheck: bool,
 }
 
 /// The notation preview: ajbot.notation's parse of the text box, done by the
@@ -468,11 +446,20 @@ struct App {
     preview_edit: Option<Instant>,
     saved: std::sync::Arc<std::sync::Mutex<Saved>>,
     saved_pick: Option<String>,
+    setup: setup::Shared,
+    game_dir_input: String,
+    jobs: VecDeque<Job>,
+    jobs_recheck: bool,
+    /// Training servers from ajbot_local.json (Train page shown when any).
+    servers: Vec<String>,
+    train_host: String,
+    train_args: String,
 }
 
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        apply_theme(&cc.egui_ctx);
+        theme::apply(&cc.egui_ctx);
+        let first_run = !settings_path().exists();
         let mut settings: Settings = std::fs::read_to_string(settings_path())
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
@@ -491,9 +478,14 @@ impl App {
             settings.python = bundled.display().to_string();
         }
         let roster = load_roster(Path::new(&settings.ajbot_dir));
+        let servers = train::servers(Path::new(&settings.ajbot_dir));
+        // What a GUI self-update left behind (it renames the running exe).
+        if let Ok(exe) = std::env::current_exe() {
+            let _ = std::fs::remove_file(exe.with_extension("exe.old"));
+        }
         let mut app = App {
             settings,
-            tab: Tab::Play,
+            tab: if first_run { Tab::Setup } else { Tab::Play },
             mode: Mode::BotVsCpu,
             source: TeamSource::InGame,
             teams: [vec![], vec![]],
@@ -518,16 +510,72 @@ impl App {
             preview_edit: Some(Instant::now()),
             saved: Default::default(),
             saved_pick: None,
+            setup: Default::default(),
+            game_dir_input: String::new(),
+            jobs: VecDeque::new(),
+            jobs_recheck: false,
+            train_host: servers.first().cloned().unwrap_or_default(),
+            servers,
+            train_args: "--cherrypick --quick".into(),
         };
+        // AJBOT_GUI_PAGE=play|combos|stats|train|settings|setup opens that page.
+        if let Ok(pg) = std::env::var("AJBOT_GUI_PAGE") {
+            app.tab = match pg.to_lowercase().as_str() {
+                "play" => Tab::Play,
+                "combos" => Tab::Combos,
+                "stats" => Tab::Stats,
+                "train" => Tab::Train,
+                "settings" => Tab::Settings,
+                _ => Tab::Setup,
+            };
+        }
         if app.settings.ajbot_dir.is_empty() {
             app.status = "AJBot folder not found - set it in Settings".into();
             app.tab = Tab::Settings;
+        } else {
+            app.setup_refresh(&cc.egui_ctx);
         }
         app
     }
 
     fn dir(&self) -> PathBuf {
         PathBuf::from(&self.settings.ajbot_dir)
+    }
+
+    /// Run a list of one-shot jobs one after another (see Job).
+    pub(crate) fn run_jobs(&mut self, jobs: Vec<Job>) {
+        if self.runner.is_some() || self.native_recorder.is_some() {
+            self.status = "something is already running - stop it first".into();
+            return;
+        }
+        self.jobs = jobs.into();
+        self.next_job(None);
+    }
+
+    /// Start the next queued job; its console continues the previous log.
+    fn next_job(&mut self, prev: Option<runner::Log>) -> bool {
+        let Some(j) = self.jobs.pop_front() else { return false };
+        self.jobs_recheck |= j.recheck;
+        match Runner::start_plain(&j.program, &self.dir(), &j.args, &j.label) {
+            Ok(r) => {
+                if let Some(prev) = prev {
+                    let old: Vec<String> = prev.lock().unwrap().iter().cloned().collect();
+                    let mut l = r.log.lock().unwrap();
+                    for line in old.into_iter().rev() {
+                        l.push_front(line);
+                    }
+                }
+                self.status = format!("{} running", j.label);
+                self.show_console = true;
+                self.runner = Some(r);
+                true
+            }
+            Err(e) => {
+                self.status = e;
+                self.jobs.clear();
+                false
+            }
+        }
     }
 
     fn save_settings(&self) {
@@ -712,7 +760,7 @@ impl App {
     // --------------------------------------------------------------- tabs
     fn ui_play(&mut self, ui: &mut egui::Ui) {
         let running = self.runner.is_some() || self.native_recorder.is_some();
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.add_enabled_ui(!running, |ui| {
                 ui.label("Mode:");
                 ui.selectable_value(&mut self.mode, Mode::BotVsCpu, "Bot vs CPU");
@@ -885,7 +933,7 @@ impl App {
                         ui.label("Recording your play  (starting...)");
                     }
                 }
-            } else if ui.button("  Start  ").clicked() {
+            } else if theme::primary_button(ui, "  ▶  Start  ").clicked() {
                 self.save_settings();
                 self.start();
             }
@@ -1057,6 +1105,11 @@ impl App {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.small_button("hide").clicked() {
                     self.show_console = false;
+                }
+                if let Some(r) = self.runner.as_mut() {
+                    if !r.stopping() && ui.small_button("■ stop").clicked() {
+                        r.request_stop();
+                    }
                 }
                 ui.checkbox(&mut self.autoscroll, "follow");
             });
@@ -1789,55 +1842,138 @@ impl App {
         });
     }
 
-    fn ui_settings(&mut self, ui: &mut egui::Ui) {
-        egui::Grid::new("settings").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
-            ui.label("AJBot folder");
-            ui.text_edit_singleline(&mut self.settings.ajbot_dir);
-            ui.end_row();
-            ui.label("Python command");
-            ui.text_edit_singleline(&mut self.settings.python);
-            ui.end_row();
-            ui.label("Policy file");
-            ui.text_edit_singleline(&mut self.settings.model);
-            ui.end_row();
-            ui.label("Box (combo practice)").on_hover_text(
-                "ssh host, AJBot folder and Python on the machine with the headless game copies");
+    fn ui_sidebar(&mut self, ui: &mut egui::Ui) {
+        let frame = egui::Frame::new().fill(theme::SIDEBAR).inner_margin(egui::Margin::same(10));
+        egui::Panel::left("nav").exact_size(196.0).resizable(false).frame(frame).show(ui, |ui| {
+            ui.add_space(6.0);
             ui.horizontal(|ui| {
-                ui.add(egui::TextEdit::singleline(&mut self.settings.box_host).desired_width(80.0));
-                ui.add(egui::TextEdit::singleline(&mut self.settings.box_dir).desired_width(220.0));
-                ui.add(egui::TextEdit::singleline(&mut self.settings.box_python).desired_width(260.0));
-                ui.label("copy");
-                ui.add(egui::DragValue::new(&mut self.settings.box_instance).range(0..=9));
+                ui.add_space(6.0);
+                ui.label(egui::RichText::new("AJBot").size(26.0).strong().color(ORANGE));
             });
-            ui.end_row();
-            ui.label("Character-select cursor starts on");
-            ui.text_edit_singleline(&mut self.settings.pick_start);
-            ui.end_row();
-            ui.label("Control-mode screen shows now")
-                .on_hover_text("The game remembers each row's Normal/Manual/Custom between                     matches and the bot remembers what it set. Only change this if you set                     the rows by hand - it applies to the next Start, then resets.");
             ui.horizontal(|ui| {
-                let c = &mut self.settings.control_now;
-                ui.selectable_value(c, String::new(), "(bot remembers)");
-                ui.selectable_value(c, "normal".to_string(), "Normal");
-                ui.selectable_value(c, "manual".to_string(), "Manual");
-                ui.selectable_value(c, "custom".to_string(), "Custom");
+                ui.add_space(7.0);
+                ui.label(egui::RichText::new("All's Justice bot").color(theme::MUTED).small());
             });
-            ui.end_row();
+            ui.add_space(16.0);
+            let problems = self.setup.lock().unwrap().problems();
+            let mut pages = vec![
+                (Tab::Setup, "🔧", "Setup", (problems > 0).then_some(theme::WARN)),
+                (Tab::Play, "▶", "Play", None),
+                (Tab::Combos, "⚔", "Combos", None),
+                (Tab::Stats, "📊", "Statistics", None),
+            ];
+            if !self.servers.is_empty() {
+                pages.push((Tab::Train, "🏆", "Train", None));
+            }
+            pages.push((Tab::Settings, "⚙", "Settings", None));
+            for (tab, icon, label, badge) in pages {
+                if theme::nav_button(ui, self.tab == tab, icon, label, badge).clicked() {
+                    self.tab = tab;
+                }
+                ui.add_space(2.0);
+            }
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+                ui.add_space(4.0);
+                if !self.status.is_empty() {
+                    ui.add(egui::Label::new(egui::RichText::new(&self.status).color(theme::MUTED).small())
+                        .wrap());
+                }
+                let running = self.runner.as_ref().map(|r| r.label.clone())
+                    .or_else(|| self.native_recorder.as_ref().map(|_| "recording".to_string()));
+                match running {
+                    Some(l) => theme::pill(ui, &format!("● {l}"), theme::GOOD),
+                    None => theme::pill(ui, "○ idle", theme::MUTED),
+                };
+                if problems > 0 && self.tab != Tab::Setup {
+                    if ui.link(egui::RichText::new(format!("⚠ {problems} setup item(s) to fix"))
+                        .color(theme::WARN).small()).clicked()
+                    {
+                        self.tab = Tab::Setup;
+                    }
+                }
+            });
         });
-        ui.add_space(8.0);
-        let ok = self.dir().join("play.py").exists();
-        if ok {
-            ui.label(format!("Found play.py · {} characters · {} icons", self.roster.len(), self.icons.len()));
-        } else {
-            ui.colored_label(egui::Color32::from_rgb(230, 100, 90), "play.py not found in that folder");
-        }
-        if ui.button("Save and reload roster").clicked() {
-            self.save_settings();
-            self.roster = load_roster(&self.dir());
-            self.icons.clear();
-            self.icons_loaded = false;
-            self.stats.loaded_mtime = None;
-        }
+    }
+
+    fn ui_settings(&mut self, ui: &mut egui::Ui) {
+        theme::page_title(ui, "Settings", "Where things are, and how the bot plays.");
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            theme::titled_card(ui, "Folders", |ui| {
+                egui::Grid::new("settings_paths").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
+                    ui.label("AJBot folder");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.ajbot_dir).desired_width(480.0));
+                    ui.end_row();
+                    ui.label("Python");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.python).desired_width(480.0));
+                    ui.end_row();
+                    ui.label("Policy file");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.model).desired_width(480.0));
+                    ui.end_row();
+                });
+                ui.add_space(4.0);
+                if self.dir().join("play.py").exists() {
+                    ui.label(egui::RichText::new(format!("found play.py · {} characters · {} icons",
+                        self.roster.len(), self.icons.len())).color(theme::MUTED));
+                } else {
+                    ui.colored_label(theme::BAD, "play.py not found in that folder");
+                }
+            });
+            ui.add_space(8.0);
+            theme::titled_card(ui, "Game screens", |ui| {
+                egui::Grid::new("settings_game").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
+                    ui.label("Character-select cursor starts on");
+                    ui.text_edit_singleline(&mut self.settings.pick_start);
+                    ui.end_row();
+                    ui.label("Control-mode screen shows now")
+                        .on_hover_text("The game remembers each row's Normal/Manual/Custom between \
+                            matches and the bot remembers what it set. Only change this if you set \
+                            the rows by hand - it applies to the next Start, then resets.");
+                    ui.horizontal(|ui| {
+                        let c = &mut self.settings.control_now;
+                        ui.selectable_value(c, String::new(), "(bot remembers)");
+                        ui.selectable_value(c, "normal".to_string(), "Normal");
+                        ui.selectable_value(c, "manual".to_string(), "Manual");
+                        ui.selectable_value(c, "custom".to_string(), "Custom");
+                    });
+                    ui.end_row();
+                });
+            });
+            ui.add_space(8.0);
+            theme::titled_card(ui, "Combo practice machine", |ui| {
+                ui.label(egui::RichText::new(
+                    "ssh host, AJBot folder and Python on the machine with the headless game copies \
+                     (optional - combos can be practised on this PC).").color(theme::MUTED));
+                egui::Grid::new("settings_box").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
+                    ui.label("ssh host");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.box_host).desired_width(260.0)
+                        .hint_text("user@host"));
+                    ui.end_row();
+                    ui.label("AJBot folder there");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.box_dir).desired_width(360.0));
+                    ui.end_row();
+                    ui.label("Python there");
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.box_python).desired_width(360.0));
+                    ui.end_row();
+                    ui.label("game copy");
+                    ui.add(egui::DragValue::new(&mut self.settings.box_instance).range(0..=9));
+                    ui.end_row();
+                });
+            });
+            ui.add_space(8.0);
+            ui.label(egui::RichText::new(
+                "Training servers and odd game paths live in ajbot_local.json (see ajbot_local.example.json).")
+                .color(theme::MUTED).small());
+            ui.add_space(6.0);
+            if theme::primary_button(ui, "Save and reload").clicked() {
+                self.save_settings();
+                self.roster = load_roster(&self.dir());
+                self.icons.clear();
+                self.icons_loaded = false;
+                self.stats.loaded_mtime = None;
+                self.servers = train::servers(&self.dir());
+                self.setup_refresh(ui.ctx());
+            }
+        });
     }
 }
 
@@ -1854,9 +1990,17 @@ impl eframe::App for App {
                 r.push(format!("[gui] script {done}"));
                 // Keep the final log visible until the next start.
                 let log = r.log.clone();
+                let stopped = r.stopping();
                 self.runner = None;
-                self.last_log = Some(log);
+                self.last_log = Some(log.clone());
                 self.stats.loaded_mtime = None;
+                if stopped {
+                    self.jobs.clear();
+                }
+                if !self.next_job(Some(log)) && std::mem::take(&mut self.jobs_recheck) {
+                    self.setup_refresh(ctx);
+                    self.servers = train::servers(&self.dir());
+                }
             }
             ctx.request_repaint_after(Duration::from_millis(200));
         }
@@ -1872,24 +2016,7 @@ impl eframe::App for App {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        egui::Panel::top("tabs").show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading(egui::RichText::new("AJBot").color(ORANGE).strong());
-                ui.separator();
-                ui.selectable_value(&mut self.tab, Tab::Play, "Play");
-                ui.selectable_value(&mut self.tab, Tab::Combos, "Combos");
-                ui.selectable_value(&mut self.tab, Tab::Stats, "Statistics");
-                ui.selectable_value(&mut self.tab, Tab::Settings, "Settings");
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let (txt, col) = if self.runner.is_some() || self.native_recorder.is_some() {
-                        ("● running", egui::Color32::from_rgb(90, 200, 110))
-                    } else {
-                        ("○ idle", ui.visuals().weak_text_color())
-                    };
-                    ui.colored_label(col, txt);
-                });
-            });
-        });
+        self.ui_sidebar(ui);
         let has_log = self.runner.is_some() || self.native_recorder.is_some() || self.last_log.is_some();
         if has_log && self.show_console {
             egui::Panel::bottom("console")
@@ -1910,7 +2037,10 @@ impl eframe::App for App {
                 });
             });
         }
-        egui::CentralPanel::default().show(ui, |ui| match self.tab {
+        let page = egui::Frame::new().fill(theme::PANEL).inner_margin(egui::Margin::symmetric(20, 14));
+        egui::CentralPanel::default().frame(page).show(ui, |ui| match self.tab {
+            Tab::Setup => self.ui_setup(ui),
+            Tab::Train => self.ui_train(ui),
             Tab::Play => self.ui_play(ui),
             Tab::Combos => self.ui_combos(ui),
             Tab::Stats => self.ui_stats(ui),

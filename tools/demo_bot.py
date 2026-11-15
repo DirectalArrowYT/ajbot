@@ -9,6 +9,7 @@ Start a local/training match, then alt-tab back and run this.
 The virtual pad appears as an extra Xbox controller, so assign it to the
 slot you want the bot to drive (P1 or P2).
 """
+import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import sys
 import time
 
