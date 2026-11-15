@@ -154,7 +154,8 @@ def main():
     print(f"\n{zpath}  ({zpath.stat().st_size // 1024} KB, {n} files)")
     print(f"{DIST / gui.name}  ({gui.stat().st_size // 1024} KB)")
     print(f"\nrelease tag suggestion: v{ver}")
-    print(f"upload both at {doctor.RELEASES_URL}/new")
+    print(f"upload the zip at {doctor.RELEASES_URL}/new (the GUI exe is published by "
+          "GitHub Actions on every gui/ change; attach it too only if you want)")
 
 
 if __name__ == "__main__":

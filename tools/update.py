@@ -4,11 +4,11 @@
     python tools/update.py --check   # only say what would change
 
   * code: `git pull` when this folder is a git checkout
-  * GUI: ajbot-gui.exe from the latest release when its tag is newer than the
-    one installed here (the running exe is renamed to .old and replaced; the
+  * GUI: ajbot-gui.exe from the newest release that has one (GitHub Actions
+    publishes one per GUI change) when it differs from the one installed here (the running exe is renamed to .old and replaced; the
     new one is used from the next start)
-  * game files: tools/doctor.py --fix gamefiles when the release is newer
-    than the one installed in the game (skipped while the game is running)
+  * game files: tools/doctor.py --fix gamefiles when the newest release with
+    an ajbot-gamefiles zip differs from the one installed in the game (skipped while the game is running)
 """
 import os, sys  # noqa: E401
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
@@ -48,17 +48,18 @@ def load_stamp():
         return {}
 
 
-def update_gui(rel, check):
+def update_gui(check):
+    try:
+        rel, asset = doctor.release_with(doctor.GUI_ASSET)
+    except SystemExit as e:
+        print(f"gui: {e}")
+        return
     tag = rel.get("tag_name")
-    asset = next((a for a in rel.get("assets", []) if a["name"] == GUI.name), None)
     stamp = load_stamp()
     tracked = subprocess.run(["git", "ls-files", GUI.name], capture_output=True,
                              text=True).stdout.strip() if Path(".git").exists() else ""
     if tracked:
         print("gui: committed in this checkout - git pull / cargo build updates it")
-        return
-    if asset is None:
-        print(f"gui: release {tag} has no {GUI.name}")
         return
     if stamp.get("gui") == tag and GUI.exists():
         print(f"gui: up to date ({tag})")
@@ -82,7 +83,12 @@ def update_gui(rel, check):
     print("gui: updated - restart the GUI to use it")
 
 
-def update_gamefiles(rel, check):
+def update_gamefiles(check):
+    try:
+        rel, _ = doctor.release_with(doctor.GAMEFILES_PREFIX)
+    except SystemExit as e:
+        print(f"game files: {e}")
+        return
     tag = rel.get("tag_name")
     game = doctor.find_game()
     if game is None:
@@ -111,16 +117,10 @@ def main():
     a = ap.parse_args()
     git_pull(a.check)
     try:
-        rel = doctor.latest_release()
-    except SystemExit as e:
-        print(f"releases: {e}")
-        return
-    except Exception as e:
+        update_gui(a.check)
+        update_gamefiles(a.check)
+    except OSError as e:                     # urllib errors included
         print(f"releases: could not reach GitHub ({e})")
-        return
-    print(f"latest release: {rel.get('tag_name')}")
-    update_gui(rel, a.check)
-    update_gamefiles(rel, a.check)
 
 
 if __name__ == "__main__":

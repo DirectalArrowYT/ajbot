@@ -128,8 +128,13 @@ def parse_args():
                          "drills) instead of being driven through them in a match")
     ap.add_argument("--no-routes", action="store_true",
                     help=argparse.SUPPRESS)   # the old opt-out; routes are off by default now
+    ap.add_argument("--book", action="store_true",
+                    help="let the combo book (models/combobook.json) override the "
+                         "model's pick mid-combo. Off by default, like --routes: "
+                         "the bot learns its combos in training. (The book is "
+                         "still read for tag-in timing either way.)")
     ap.add_argument("--no-book", action="store_true",
-                    help="do not use models/combobook.json to extend combos")
+                    help="do not load the combo book at all (tag-in timing too)")
     ap.add_argument("--critic-beta", type=float, default=1.0,
                     help="how strongly the critic reranks the policy's choices "
                          "(0 = pure behaviour cloning)")
@@ -315,7 +320,8 @@ def main():
     combo = combobook.ComboPolicy(book) if book else None
     if combo:
         print(f"combo book: {book.get('segments', 0)} segments, "
-              f"{len(combo.chars)} characters")
+              f"{len(combo.chars)} characters"
+              + ("" if args.book else " (tag-in timing only; --book follows it)"))
     elif not args.no_book:
         print("no combo book yet - build one with: python training/combobook.py")
     route = None if (args.no_routes or not args.routes) else routebook.RouteFollower(routebook.load_all(Path(args.model).parent))
@@ -701,7 +707,7 @@ def main():
             if escaped or spent or did_tag or guarded:
                 pass          # that press already consumed this decision
             elif pad:
-                # Mid-combo, the combo book knows which continuation keeps the
+                # With --book, mid-combo, the combo book knows which continuation keeps the
                 # hits coming longest for this character.
                 # With --routes, a known route (models/authored_routes.json) outranks the
                 # mined book: someone who knows the character wrote it down.
@@ -714,7 +720,7 @@ def main():
                         match_taken["ROUTE"] += 1
                     if route.holding(me):
                         stick = (0.0, 0.0)
-                if combo and chain.by_us is not None and not (route and route.progress(me)):
+                if combo and args.book and chain.by_us is not None and not (route and route.progress(me)):
                     sug = combo.suggest(me, action, lambda a: a in ACTION_MAP
                                         and agent._available(a, me or {}))
                     if sug:

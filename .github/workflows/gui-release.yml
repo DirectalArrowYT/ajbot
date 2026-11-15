@@ -1,0 +1,63 @@
+# Builds the GUI on every push to main that touches it and publishes
+# ajbot-gui.exe as a new release. tools/update.py and the Setup page pick
+# up the newest release that has the exe. The game files zip is published
+# by hand (tools/make_release.py) and is found in whichever release holds it.
+name: GUI release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gui/**"
+      - ".github/workflows/gui-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gui-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui
+
+      - name: Build
+        working-directory: gui
+        run: cargo build --release --locked
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          notes="Automatic GUI build of ${GITHUB_SHA::7}: $(git log -1 --format=%s)
+
+          Download ajbot-gui.exe into your AJBot folder, or use Setup > Update now.
+          The game files zip is in the newest release that has one."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" gui/target/release/ajbot-gui.exe --clobber
+          else
+            gh release create "$tag" gui/target/release/ajbot-gui.exe \
+              --title "GUI $tag" --notes "$notes" --target "$GITHUB_SHA" --latest
+          fi
+
+      - name: Keep the newest 5 GUI-only releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Releases that carry a game files zip are never removed.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select([.assets[].name | startswith("ajbot-gamefiles")] | any | not) | .tag_name' \
+            | tail -n +6 | while read -r t; do
+                gh release delete "$t" --yes --cleanup-tag
+              done

@@ -53,5 +53,11 @@ or run a one-off retrain over there.
 
 ## Making a release
 
-`python tools/make_release.py` builds the GUI and `ajbot-gamefiles-<ver>.zip`
-into `dist/`; upload both to a new GitHub release.
+The GUI releases itself: every push to `main` that changes `gui/` makes
+GitHub Actions build `ajbot-gui.exe` and publish it as a new release
+(`.github/workflows/gui-release.yml`; the newest 5 are kept).
+
+The game files only change now and then: `python tools/make_release.py`
+builds `ajbot-gamefiles-<ver>.zip` into `dist/`. Attach it to a release by
+hand. The updater finds the newest release that has one, so later GUI
+releases don't need to carry it.

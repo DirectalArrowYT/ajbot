@@ -235,17 +235,27 @@ def say(msg):
     print(msg, flush=True)
 
 
-def latest_release():
-    req = urllib.request.Request(f"https://api.github.com/repos/{RELEASE_REPO}/releases/latest",
+GUI_ASSET = "ajbot-gui.exe"
+GAMEFILES_PREFIX = "ajbot-gamefiles"
+
+
+def release_with(prefix):
+    """(release, asset) for the newest published release carrying an asset
+    whose name starts with `prefix`. The GUI gets a release of its own on
+    every build (GitHub Actions), the game files only now and then, so the
+    newest release need not hold both."""
+    req = urllib.request.Request(f"https://api.github.com/repos/{RELEASE_REPO}/releases?per_page=50",
                                  headers={"User-Agent": "ajbot-setup",
                                           "Accept": "application/vnd.github+json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            raise SystemExit(f"no release published yet on {RELEASES_URL}")
-        raise
+    with urllib.request.urlopen(req, timeout=30) as r:
+        releases = json.load(r)
+    for rel in releases:                     # newest first
+        if rel.get("draft"):
+            continue
+        for a in rel.get("assets", []):
+            if a["name"].startswith(prefix):
+                return rel, a
+    raise SystemExit(f"no release on {RELEASES_URL} has {prefix}* yet")
 
 
 def download(url, dest):
@@ -301,12 +311,7 @@ def install_mods(win64):
 
 def install_gamefiles(win64):
     say(f"asking GitHub for the latest release of {RELEASE_REPO} ...")
-    rel = latest_release()
-    asset = next((a for a in rel.get("assets", [])
-                  if a["name"].startswith("ajbot-gamefiles") and a["name"].endswith(".zip")), None)
-    if asset is None:
-        raise SystemExit(f"release {rel.get('tag_name')} has no ajbot-gamefiles zip - "
-                         f"ask for one, or see {RELEASES_URL}")
+    rel, asset = release_with(GAMEFILES_PREFIX)
     Path("cache").mkdir(exist_ok=True)
     zpath = Path("cache") / asset["name"]
     say(f"downloading {asset['name']} ({asset['size'] // 1024 // 1024} MB)")

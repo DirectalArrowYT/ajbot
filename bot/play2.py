@@ -194,8 +194,13 @@ def parse_args():
                          "drills) instead of being driven through them in a match")
     ap.add_argument("--no-routes", action="store_true",
                     help=argparse.SUPPRESS)   # the old opt-out; routes are off by default now
+    ap.add_argument("--book", action="store_true",
+                    help="let the combo book (models/combobook.json) override the "
+                         "model's pick mid-combo. Off by default, like --routes: "
+                         "the bot learns its combos in training. (The book is "
+                         "still read for tag-in timing either way.)")
     ap.add_argument("--no-book", action="store_true",
-                    help="do not use models/combobook.json to extend combos")
+                    help="do not load the combo book at all (tag-in timing too)")
     ap.add_argument("--no-stats", action="store_true",
                     help="do not append match results to stats/matches.jsonl")
     ap.add_argument("--stop-file", default=None,
@@ -617,7 +622,7 @@ class Bot:
                 self.taken["ROUTE"] += 1
             if self.route.holding(me):
                 stick = (0.0, 0.0)
-        if (self.combo and self.chain.by_us is not None
+        if (self.combo and self.args.book and self.chain.by_us is not None
                 and not (getattr(self, "route", None) and self.route.progress(me))):
             sug = self.combo.suggest(me, action, lambda a: a in ACTION_MAP
                                      and self.agent._available(a, me))
