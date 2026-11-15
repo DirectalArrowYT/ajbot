@@ -1,0 +1,10 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Recorded data and model weights: keep bytes exact (cache keys hash these)
+*.jsonl -text
+*.npz binary
+*.pkl binary
+
+# Batch files need CRLF to run on Windows
+*.bat text eol=crlf

@@ -1,0 +1,286 @@
+"""The combo book: what continues a combo, per character, mined from recordings.
+
+Every recording holds combos by the game's own rule (ajbot.chain): human play
+in runs/, the bot's play in botruns/, and - from either - the OPPONENT's
+combos on us, which is how a Lv5 CPU's routes get learned too. Each combo is
+cut into segments, one per fighter, and each segment is the sequence of
+commands that fighter used while the hits kept coming.
+
+From those this builds, per character:
+
+  next     (previous command, current command) -> the command that followed,
+           with how many hits the segment went on to reach. The live policy
+           uses it to pick the continuation that historically keeps a combo
+           going longest, instead of whatever the model rates highest.
+  routes   the best complete segments seen (command sequence, hits, damage).
+  seg      how long this character's segments usually get before the combo
+           drops - the prior for when it should tag the combo onward.
+
+    python combobook.py                       # build models/combobook.json
+    python combobook.py --show Eraserhead     # print one character's page
+"""
+import collections
+import glob
+import json
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
+
+from . import dataset as D
+from .chain import ChainTracker
+from .parallel import Progress, safe_worker_count
+from .roster import base_name, INDEX
+
+BOOK_PATH = Path("models") / "combobook.json"
+IGNORE = {None, "None", "DamageEscape"}
+
+
+def _segments_from(ticks):
+    """Yield (char, [cmds], hits, damage, source_side) for every segment."""
+    chain = ChainTracker()
+    # Per open combo: the command sequence of its CURRENT segment.
+    seqs = {}
+    last_cmd = {}
+
+    def cmd_of(key, tick):
+        return ((tick.get("chars") or {}).get(key) or {}).get("cmd")
+
+    for t in ticks:
+        me, en, mine, theirs = D.resolve(t)
+        now = t.get("t")
+        if not isinstance(now, (int, float)):
+            continue
+        before = {id(c): (c, len(c.segments)) for c in chain.open.values()}
+        closed = chain.update(t.get("chars") or {}, mine, theirs, me, en, now)
+
+        for c, side, attacker in ((chain.by_us, "us", me), (chain.on_us, "them", en)):
+            if c is None or not attacker:
+                continue
+            state = seqs.setdefault(id(c), {"seg": 0, "cmds": [], "c": c, "side": side})
+            if len(c.segments) != state["seg"] and state["cmds"]:
+                # A tag handed the combo on: the previous segment is complete.
+                prev = c.segments[state["seg"] - 1] if state["seg"] >= 1 else None
+                if prev:
+                    yield prev[0], state["cmds"], prev[1], prev[2], side
+                state["cmds"] = []
+            state["seg"] = len(c.segments)
+            cmd = cmd_of(attacker, t)
+            if cmd not in IGNORE and (not state["cmds"] or state["cmds"][-1] != cmd):
+                if last_cmd.get(attacker) != cmd or not state["cmds"]:
+                    state["cmds"].append(cmd)
+            last_cmd[attacker] = cmd
+
+        # Combos that just ended: their last segment is complete too.
+        for cid in list(seqs):
+            st = seqs[cid]
+            if st["c"] in chain.finished:
+                if st["c"].segments and st["cmds"]:
+                    s = st["c"].segments[-1]
+                    yield s[0], st["cmds"], s[1], s[2], st["side"]
+                del seqs[cid]
+        chain.drain()
+
+
+def _build_one(args):
+    """Worker: one file's segment stats, flattened for pickling - a nested
+    defaultdict with lambda factories (see build()) cannot cross a process
+    boundary. Module-level so it can run in a subprocess.
+
+    Returns (nexts, routes, seglens, n_seg) where nexts is a flat list of
+    (char, key, next_cmd, count, hits) tuples instead of the nested shape.
+    """
+    path, min_hits = args
+    try:
+        ticks = D.load(path)
+    except (OSError, ValueError):
+        return [], [], [], 0
+
+    nexts = collections.defaultdict(lambda: collections.defaultdict(
+        lambda: collections.defaultdict(lambda: [0, 0.0])))
+    routes = []           # (char, seq, hits, dmg, side)
+    seglens = []          # (char, hits)
+    n_seg = 0
+    for char, cmds, hits, dmg, side in _segments_from(ticks):
+        if isinstance(char, str) and char.startswith("Pl"):
+            char = base_name(char)
+        elif char not in INDEX:
+            char = None           # unnamed slot handle: several fighters mixed
+        if not char or not cmds:
+            continue
+        n_seg += 1
+        seglens.append((char, hits))
+        if hits >= min_hits:
+            routes.append((char, tuple(cmds[:10]), hits, round(dmg, 4), side))
+        seq = [None, None] + cmds
+        for i in range(2, len(seq) - 1):
+            key = f"{seq[i - 1]}|{seq[i]}"
+            arm = nexts[char][key][seq[i + 1]]
+            arm[0] += 1
+            arm[1] += hits
+    nexts_flat = [(char, key, nxt, arm[0], arm[1])
+                  for char, kv in nexts.items()
+                  for key, nv in kv.items()
+                  for nxt, arm in nv.items()]
+    return nexts_flat, routes, seglens, n_seg
+
+
+def build(files, min_hits=2):
+    """Each file's segment mining is independent, so - like train.py's
+    feature build and mine.py's combo scan - this runs across a process
+    pool sized against free RAM, with a progress line, and the per-file
+    results are merged afterward."""
+    nexts = collections.defaultdict(lambda: collections.defaultdict(
+        lambda: collections.defaultdict(lambda: [0, 0.0])))
+    routes = collections.defaultdict(list)
+    seglens = collections.defaultdict(list)
+    n_seg = 0
+
+    if files:
+        jobs = [(f, min_hits) for f in files]
+        sizes = [Path(f).stat().st_size for f in files]
+        n_workers = safe_worker_count(sizes)
+        progress = Progress(len(files), "mining combos")
+
+        def handle(result):
+            nonlocal n_seg
+            nexts_flat, r, s, n = result
+            for char, key, nxt, count, hits in nexts_flat:
+                arm = nexts[char][key][nxt]
+                arm[0] += count
+                arm[1] += hits
+            for char, seq, hits, dmg, side in r:
+                routes[char].append((seq, hits, dmg, side))
+            for char, hits in s:
+                seglens[char].append(hits)
+            n_seg += n
+            progress.update()
+
+        if len(jobs) > 1 and n_workers > 1:
+            with ProcessPoolExecutor(max_workers=n_workers) as ex:
+                # as_completed, not map(): map yields in submission order, so
+                # one slow file at the front would stall every progress
+                # update behind it even while later files keep finishing.
+                futures = [ex.submit(_build_one, j) for j in jobs]
+                for fut in as_completed(futures):
+                    handle(fut.result())
+        else:
+            for j in jobs:
+                handle(_build_one(j))
+
+    book = {"segments": n_seg, "chars": {}}
+    for char in set(seglens) | set(routes):
+        lens = sorted(seglens[char])
+        best = {}
+        for seq, hits, dmg, side in routes[char]:
+            b = best.setdefault(seq, {"seq": list(seq), "count": 0, "hits": 0, "dmg": 0.0, "from": set()})
+            b["count"] += 1
+            b["hits"] = max(b["hits"], hits)
+            b["dmg"] = max(b["dmg"], dmg)
+            b["from"].add(side)
+        top = sorted(best.values(), key=lambda b: (-b["hits"], -b["count"]))[:12]
+        for b in top:
+            b["from"] = sorted(b["from"])
+        book["chars"][char] = {
+            "segments": len(lens),
+            "seg_p50": lens[len(lens) // 2] if lens else 0,
+            "seg_p75": lens[(3 * len(lens)) // 4] if lens else 0,
+            "routes": top,
+            "next": {k: {nxt: [a[0], round(a[1] / a[0], 2)] for nxt, a in v.items()}
+                     for k, v in nexts[char].items()},
+        }
+    return book
+
+
+def load(path=BOOK_PATH):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+class ComboPolicy:
+    """Picks the combo continuation the book says goes longest.
+
+    Only active while WE are comboing (the opponent is in hitstun in a chain
+    we started) - neutral play stays with the model. Overrides the model's
+    pick when the book has a continuation seen at least `min_count` times that
+    historically led to clearly longer segments than the model's choice.
+    """
+
+    def __init__(self, book, min_count=3, margin=1.0):
+        self.chars = (book or {}).get("chars", {})
+        self.min_count = min_count
+        self.margin = margin
+        self.hist = {}                    # our key -> [prev, cur]
+        self.overrides = 0
+
+    def seg_prior(self):
+        """Per-character segment targets for TagPolicy (a bit under the median)."""
+        return {c: max(3, min(10, int(round(p["seg_p50"] * 0.9))))
+                for c, p in self.chars.items() if p.get("segments", 0) >= 5}
+
+    def observe(self, me):
+        key = (me or {}).get("key")
+        cmd = (me or {}).get("cmd")
+        if not key or cmd in IGNORE:
+            return
+        h = self.hist.setdefault(key, [None, None])
+        if cmd != h[1]:
+            h[0], h[1] = h[1], cmd
+
+    def suggest(self, me, model_pick, available):
+        """A better continuation than `model_pick`, or None to keep it."""
+        key = (me or {}).get("key")
+        page = self.chars.get(base_name(key) or key)
+        if not page:
+            return None
+        h = self.hist.get(key, [None, None])
+        arms = page["next"].get(f"{h[0]}|{h[1]}") or page["next"].get(f"None|{h[1]}")
+        if not arms:
+            return None
+        good = [(nxt, cnt, mean) for nxt, (cnt, mean) in arms.items()
+                if cnt >= self.min_count and available(nxt)]
+        if not good:
+            return None
+        nxt, cnt, mean = max(good, key=lambda x: x[2])
+        model_mean = arms.get(model_pick, [0, 0.0])[1]
+        if nxt != model_pick and mean >= model_mean + self.margin:
+            self.overrides += 1
+            return nxt
+        return None
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--runs", default="runs/*.jsonl,botruns/*.jsonl")
+    ap.add_argument("--out", default=str(BOOK_PATH))
+    ap.add_argument("--show", default=None, help="print one character's page")
+    args = ap.parse_args(argv)
+
+    if args.show:
+        book = load(args.out)
+        page = (book or {}).get("chars", {}).get(args.show)
+        if not page:
+            print(f"no page for {args.show}")
+            return 1
+        print(f"{args.show}: {page['segments']} segments, typical length "
+              f"{page['seg_p50']} hits (p75 {page['seg_p75']})")
+        for r in page["routes"]:
+            print(f"  {r['hits']:>2} hits  x{r['count']:<3} {' > '.join(r['seq'])}"
+                  f"   ({'/'.join(r['from'])})")
+        return 0
+
+    files = []
+    for pat in args.runs.split(","):
+        files += sorted(glob.glob(pat.strip()))
+    print(f"mining {len(files)} recordings...")
+    book = build(files)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(json.dumps(book, indent=1), encoding="utf-8")
+    chars = book["chars"]
+    print(f"{book['segments']} combo segments, {len(chars)} characters -> {args.out}")
+    for c, p in sorted(chars.items(), key=lambda kv: -kv[1]["segments"])[:15]:
+        best = p["routes"][0] if p["routes"] else None
+        print(f"  {c:<18} {p['segments']:>4} segs  typical {p['seg_p50']} hits"
+              + (f"  best {best['hits']}: {' > '.join(best['seq'][:6])}" if best else ""))
+    return 0

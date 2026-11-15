@@ -1,0 +1,35 @@
+# Build output
+ajhook/target/
+
+# Caches
+__pycache__/
+*.pyc
+cache/
+
+# Rotated policy backups (~380 MB each, regenerable by retraining)
+models/prev/
+
+# GUI build output and per-machine settings
+gui/target/
+ajbot_gui_settings.json
+stats/.gui_stop
+/archive
+
+# Linux virtualenv
+.venv/
+# Linux GUI build (the Windows one is ajbot-gui.exe)
+/ajbot-gui
+/botruns
+
+# Recordings live on the training server (remote_retrain.py moves them there)
+/runs/
+/botruns/
+
+# local-only: game library and model backups
+liboodle-data-shared.so
+models/prev-local-*/
+models/pulled-*/
+models/champion.json
+.pull_tmp_*/
+/models
+ajbot_local.json

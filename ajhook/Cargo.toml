@@ -1,0 +1,37 @@
+[package]
+name = "ajhook"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    # OVERLAPPED / SECURITY_ATTRIBUTES appear in the ReadFile, WriteFile,
+    # ConnectNamedPipe and CreateNamedPipeW signatures; without these features
+    # windows-sys omits those functions entirely.
+    "Win32_System_IO",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+    "Win32_System_SystemServices",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Pipes",
+    "Win32_Storage_FileSystem",
+    "Win32_UI_WindowsAndMessaging",
+] }
+# For assembling/writing the recorder's JSONL tick output natively - hand-
+# building nested JSON (a "chars" dict with dynamic keys) via string
+# concatenation is exactly the kind of thing that silently corrupts
+# training data on edge cases (special characters in names, escaping).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"

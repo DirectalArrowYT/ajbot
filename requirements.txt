@@ -1,0 +1,11 @@
+# Python packages for the bot. Install with:
+#   python -m pip install -r requirements.txt
+numpy>=2.0
+scikit-learn>=1.5
+# Virtual controller: ViGEm on Windows, a uinput Xbox 360 pad on Linux
+# (the game runs under Proton there; see ajbot/pad.py).
+vgamepad>=0.1.0; sys_platform == "win32"
+evdev>=1.6; sys_platform == "linux"
+# GPU-accelerated action/movement heads in train.py when a CUDA device is
+# present; falls back to CPU-only sklearn models automatically otherwise.
+xgboost>=2.0

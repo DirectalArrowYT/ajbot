@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "server": {
+      "host": "user@training-host",
+      "dir": "/srv/AJBot",
+      "python": "/srv/AJBot/venv/bin/python",
+      "linux": true,
+      "lockstep": "/srv/AJBot-lockstep"
+    }
+  },
+  "game": {
+    "dir": "",
+    "prefix": "",
+    "launcher": ""
+  }
+}

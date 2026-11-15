@@ -1,0 +1,1160 @@
+"""Live policy: game state in, controller input out.
+
+Reads a trained policy, turns a sampler snapshot into the same feature vector
+the model was trained on, and maps its two outputs onto the pad:
+
+  action   -> a move, pressed via the button map below
+  movement -> a camera-relative stick angle plus magnitude
+
+The movement head predicts [sin(lcam), cos(lcam), lscale]. Because the stick
+is camera-relative and forward is +Y, those two components ARE the stick
+vector, so no conversion is needed beyond scaling.
+
+Around the model sit four rule-and-bandit policies for what it cannot learn
+from the recordings yet (priority order in play.py):
+
+  EscapePolicy    - emergency dodge out of a combo
+  DefensePolicy   - just guard / guard / counter / dodge against an attack,
+                    choosing by LEARNED reward per situation
+  ResourcePolicy  - Rising, Plus Ultra, Plus Ultra Combo
+  TagPolicy       - Change and Change Combo
+
+All of them read `act` - the action each fighter is actually running, from the
+sampler's action wrappers. Before that existed they leaned on `stun`, `kb` and
+`grab`, which on the opponent never fire, so "they are in hitstun" had to be
+guessed from health deltas.
+
+Game rules they encode, from the game's own tutorial text:
+  * Change (LT/RT) swaps the controlled character; each partner then has a
+    cooldown. Changing DURING an attack is a Change Combo, which builds more
+    Plus Ultra than an ordinary combo.
+  * Just Guard = press and immediately release Guard as the hit arrives. It
+    opens a counter window.
+  * Counter Attack (Guard + Q1) is armoured. As the opponent attacks it is a
+    Counter Crash, which refills Plus Ultra and Rising gauge.
+  * Target Combo beats Unblockable, Unblockable beats Counter, Counter beats
+    Target Combo.
+  * Guarding and dodging spend stamina; guarding on empty is a Stamina Break.
+"""
+import collections
+import json
+import math
+import pickle
+import random
+import time
+from pathlib import Path
+
+import numpy as np
+
+from . import dataset as D
+from . import sampler
+from .action_log import UnknownActionLog
+from .sampler import act_class, Envelope
+from .pad import (NATTACK, QUIRKTEC1, QUIRKTEC2, GUARD, JUMP, DASH, RSTICK)
+
+# Action -> (buttons, needs_stick). The "Ex" variants are lever-input forms: a
+# direction held with the attack button.
+#
+# Two bindings come from playing the game, NOT from the shipped KeyConfig,
+# which disagrees:
+#   Plus Ultra    = GUARD + B   (KeyConfig lists PULTRA1 as GUARD + Y)
+#   GUARD + Y     = Counter Attack, a different mechanic entirely
+ACTION_MAP = {
+    "Melee":         ((NATTACK,), False),
+    "ExMelee":       ((NATTACK,), True),
+    "Unique1":       ((QUIRKTEC1,), False),
+    "ExUnique1":     ((QUIRKTEC1,), True),
+    "Unique2":       ((QUIRKTEC2,), False),
+    "ExUnique2":     ((QUIRKTEC2,), True),
+    "Unguardable":   ((GUARD, NATTACK), False),
+    "PlusUltra1":    ((GUARD, QUIRKTEC2), False),
+    "PlusUltra2":    ((GUARD, QUIRKTEC2), False),
+    "Awaking":       ((RSTICK,), False),        # Rising: right stick click
+    # The emergency escape out of hitstun is the same right-stick click; the
+    # game reads it as an escape while the fighter is being hit (confirmed by
+    # the player). The model already knows WHEN via ok_esc / ev_esc.
+    "Escape":        ((RSTICK,), False),
+    "Jump":          ((JUMP,), False),
+    "Dash":          ((DASH,), False),
+    "Guard":         ((GUARD,), False),
+    # Defensive labels, learned from `act` in recordings made since the
+    # action wrappers went in. A 3-frame press IS a just-guard attempt.
+    "JustGuard":     ((GUARD,), False),
+    "CounterAttack": ((GUARD, QUIRKTEC1), False),
+    "Dodge":         ((GUARD,), True),          # Guard + direction
+}
+
+COUNTER_ATTACK = (GUARD, QUIRKTEC1)
+RISING_ACTION = (GUARD, JUMP)
+RISING_ENTER = (RSTICK,)
+
+# Change is on the analog triggers - one per partner.
+TAG_SIDES = ("left", "right")
+
+# Actions we can observe but have no confident input for yet.
+UNMAPPED = {"None", "DamageEscape", "ExtremeAction", "TagCombo"}
+
+QUIRK_ACTIONS = {"Unique1", "Unique2", "ExUnique1", "ExUnique2",
+                 "UniqueCharge1", "UniqueCharge2", "PlusUltra1", "PlusUltra2"}
+ERASED_FALLBACK = ("ExMelee", "Melee")
+
+# Buttons `learn_actions.py` is allowed to name in models/learned_actions.json,
+# by the friendly name used there rather than the vgamepad enum directly - the
+# file has to survive being read back without importing vgamepad's constants.
+BUTTON_BY_NAME = {"NATTACK": NATTACK, "QUIRKTEC1": QUIRKTEC1,
+                  "QUIRKTEC2": QUIRKTEC2, "GUARD": GUARD, "JUMP": JUMP,
+                  "DASH": DASH, "RSTICK": RSTICK}
+
+LEARNED_PATH = Path("models") / "learned_actions.json"
+
+# Per-action hold override in frames, for moves learned from observed
+# durations (a held quirk fires later than a tapped one). Populated below.
+ACTION_HOLD_OVERRIDE = {}
+
+
+def _load_learned(path=LEARNED_PATH):
+    """Merge models/learned_actions.json into ACTION_MAP, filling gaps only -
+    a hand-written entry always wins over a guessed one."""
+    if not path.exists():
+        return
+    try:
+        learned = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    for action, spec in learned.items():
+        try:
+            buttons = tuple(BUTTON_BY_NAME[b] for b in spec["buttons"])
+        except KeyError:
+            continue          # a button name this version of pad.py dropped
+        if action not in ACTION_MAP:
+            ACTION_MAP[action] = (buttons, bool(spec.get("needs_stick")))
+        if spec.get("hold_frames"):
+            ACTION_HOLD_OVERRIDE[action] = int(spec["hold_frames"])
+
+
+_load_learned()
+
+# Actions the model or the game's `cmd` names that still have no button press,
+# even after learned_actions.json - logged once per session so they surface
+# for learn_actions.py (or a human) to resolve instead of being silently
+# dropped by plan_press.
+_unknown_actions = UnknownActionLog(source="agent")
+
+AVAILABILITY = {
+    "Melee": "ok_melee", "ExMelee": "ok_exmelee",
+    "Unique1": "ok_u1", "Unique2": "ok_u2",
+    "ExUnique1": "ok_exu1", "ExUnique2": "ok_exu2",
+    "Unguardable": "ok_ub",
+    "PlusUltra1": "ok_pu1", "PlusUltra2": "ok_pu2",
+    "Awaking": "ok_awk",
+}
+
+OFFENCE = {"combo", "attack", "unblock", "pu", "rising", "assist"}
+
+
+def _cls(rec):
+    return act_class((rec or {}).get("act")) if rec and "act" in rec else None
+
+
+def _hp(rec):
+    h = (rec or {}).get("hp")
+    return float(h) if isinstance(h, (int, float)) else None
+
+
+def _dist(rec):
+    d = (rec or {}).get("dist")
+    return float(d) if isinstance(d, (int, float)) else 1e9
+
+
+def update_chain(chain, teams, now=None):
+    """Feed one tick of `teams` (sampler.teams output) to a ChainTracker."""
+    if chain is None:
+        return
+    recs = list(teams.get("mine") or []) + list(teams.get("theirs") or [])
+    chars = {r.get("key"): r for r in recs if r.get("key")}
+    chain.update(chars, [r.get("key") for r in teams.get("mine") or []],
+                 [r.get("key") for r in teams.get("theirs") or []],
+                 (teams.get("me") or {}).get("key"),
+                 (teams.get("enemy") or {}).get("key"), now)
+
+
+def pinned(rec):
+    """Being hit right now. `act` when available; the old flags otherwise."""
+    c = _cls(rec)
+    if c is not None:
+        return c == "damage"
+    return bool((rec or {}).get("stun") or (rec or {}).get("kb")
+                or (rec or {}).get("grab"))
+
+
+class Agent:
+    def __init__(self, path="models/policy.pkl", flip_x=False, deadzone=0.18,
+                 approach_dist=700.0):
+        with Path(path).open("rb") as fh:
+            p = pickle.load(fh)
+        self.action = p["action"]
+        self.movement = p["movement"]
+        self.actions = p["actions"]
+        self.chars = p["chars"]
+        self.flip_x = flip_x
+        self.deadzone = deadzone
+        # Past this distance a neutral stick is wasted time: walk in. Humans
+        # push the stick 12-31% of ticks; the bot was down at 6%.
+        self.approach_dist = approach_dist
+        self.n_features = p.get("n_features")
+        # Combo history per fighter (the `prev_cmd` feature). Keyed by
+        # character, so one Agent can serve both sides of a self-play match.
+        self._hist = {}
+        # Recent-tick history for the HISTORY_K spacing/timing features,
+        # reset whenever a different fighter is on point - a tag partner does
+        # not inherit the outgoing fighter's approach, and training never
+        # lets one streak's history bleed into another's either.
+        self._tick_hist = {}
+        self._last_key = None
+        self._pacing = {}             # per fighter, see _pace
+        self._serialize()
+
+    def _serialize(self):
+        """Predict on one thread: live play asks for ONE row at a time, and a
+        thread pool costs more than the trees it parallelises."""
+        for head in (self.action, self.movement):
+            est = head[-1] if hasattr(head, "steps") else head
+            if hasattr(est, "n_jobs"):
+                est.n_jobs = 1
+
+    def _check_features(self, x):
+        want = self.n_features
+        if want is None:
+            want = getattr(self.action, "n_features_in_", None)
+        if want is not None and x.shape[1] != want:
+            raise RuntimeError(
+                f"policy expects {want} features but the current code builds "
+                f"{x.shape[1]}. The feature set changed since it was trained - "
+                f"retrain with:  python train.py --save models"
+            )
+
+    @staticmethod
+    def tick_from(snap, roster=None):
+        """Build the same dict shape the recorder writes, from a live snapshot."""
+        t = sampler.teams(snap, roster=roster)
+        chars = dict(sampler.dedupe(snap))
+        me, en = t["me"], t["enemy"]
+        return {
+            "chars": chars,
+            "me": (me or {}).get("key"),
+            "enemy": (en or {}).get("key"),
+            "mine": [c.get("key") for c in t["mine"]],
+            "theirs": [c.get("key") for c in t["theirs"]],
+            # Sides were decided live; never let the offline repair second-
+            # guess them.
+            "selfplay": True,
+        }, t
+
+    def _prev_cmd(self, key, cmd):
+        h = self._hist.setdefault(key, [None, None])      # [prev, last]
+        if cmd != h[1]:
+            h[0], h[1] = h[1], cmd
+        return h[0]
+
+    def decide(self, snap, roster=None):
+        """(action_name, (stick_x, stick_y), teams) for one snapshot."""
+        tick, teams = self.tick_from(snap, roster)
+        if not tick["me"]:
+            return None, (0.0, 0.0), teams
+        me = teams["me"] or {}
+        key = tick["me"]
+        prev = self._prev_cmd(key, me.get("cmd"))
+        if key != self._last_key:
+            self._tick_hist[key] = collections.deque(maxlen=D.HISTORY_K)
+            self._last_key = key
+        hist_buf = self._tick_hist[key]
+
+        x = D.featurize(tick, self.actions, self.chars, prev,
+                        list(hist_buf)).reshape(1, -1)
+        self._check_features(x)
+        hist_buf.append(tick)
+
+        probs = (self.action.predict_proba(x)[0]
+                 if hasattr(self.action, "predict_proba") else None)
+        if probs is not None:
+            idx = int(np.argmax(probs))
+        else:
+            idx = int(self.action.predict(x)[0])
+        name = self.actions[idx] if 0 <= idx < len(self.actions) else None
+
+        if name in QUIRK_ACTIONS and me.get("erased"):
+            name = self._best_non_quirk(probs)
+        elif not self._available(name, me):
+            name = self._best_available(probs, me) or name
+
+        sin_a, cos_a, scale = self.movement.predict(x)[0]
+        norm = float(np.hypot(sin_a, cos_a)) or 1.0
+        mag = float(np.clip(scale, 0.0, 1.0))
+        sx, sy = sin_a / norm * mag, cos_a / norm * mag
+        if self.flip_x:
+            sx = -sx
+        if mag < self.deadzone:
+            sx = sy = 0.0
+            # Camera-forward is toward the opponent under the lock-on camera.
+            if _dist(me) > self.approach_dist and not pinned(me):
+                sx, sy = 0.0, 1.0
+
+        name, (sx, sy) = self._pace(tick["me"], me, teams.get("enemy") or {},
+                                    name, (sx, sy))
+        return name, (float(sx), float(sy)), teams
+
+    # Pacing ------------------------------------------------------------------
+    REPRESS_S = 0.6        # same move again within this, while it still plays
+    STALL_S = 5.0          # no hit either way this long, apart = stalemate
+    STALL_DIST = 450.0
+
+    def _pace(self, key, me, en, name, stick):
+        """Stop the bot machine-gunning one button, and break stalemates.
+
+        The action head is trained on the moments a player STARTED something,
+        so it always has a move to suggest - it never learned "let this one
+        finish". Pressing its pick every decision meant the same quirk skill
+        ten times a second, rooting the fighter in place; two bots doing that
+        from range just stood apart spamming Y.
+        """
+        now = time.monotonic()
+        st = self._pacing.setdefault(key, {"last": None, "t": 0.0, "hp": None,
+                                           "quiet_since": now, "dash_t": 0.0})
+        # Anything landing either way resets the stalemate clock.
+        hp = (me.get("hp"), en.get("hp"))
+        if st["hp"] is not None and hp != st["hp"]:
+            st["quiet_since"] = now
+        st["hp"] = hp
+        cls = _cls(me)
+        busy = cls in OFFENCE and (me.get("act_n") or 0) < 12
+
+        # Same move again while the last one is still playing: let it finish.
+        if name and name == st["last"] and now - st["t"] < self.REPRESS_S and busy:
+            name = None
+
+        # Stalemate: nobody has hit anybody for a while and we are apart -
+        # walk in (and dash now and then) instead of trading projectiles.
+        if (now - st["quiet_since"] >= self.STALL_S and _dist(me) > self.STALL_DIST
+                and not pinned(me)):
+            stick = (0.0, 1.0)
+            if now - st["dash_t"] >= 1.2:
+                st["dash_t"] = now
+                name = "Dash"
+            elif name in QUIRK_ACTIONS or name in ("Melee", "ExMelee"):
+                name = None           # close the distance first
+
+        if name:
+            st["last"], st["t"] = name, now
+        return name, stick
+
+    @staticmethod
+    def _available(name, me):
+        field = AVAILABILITY.get(name)
+        if field is None or field not in me:
+            return True
+        return bool(me[field])
+
+    def _best_available(self, probs, me):
+        if probs is None:
+            return None
+        for i in sorted(range(len(probs)), key=lambda i: -probs[i]):
+            a = self.actions[i]
+            if a in ACTION_MAP and self._available(a, me):
+                if not (a in QUIRK_ACTIONS and me.get("erased")):
+                    return a
+        return None
+
+    def _best_non_quirk(self, probs):
+        if probs is not None:
+            for i in sorted(range(len(probs)), key=lambda i: -probs[i]):
+                a = self.actions[i]
+                if a not in QUIRK_ACTIONS and a in ACTION_MAP:
+                    return a
+        for a in ERASED_FALLBACK:
+            if a in self.actions:
+                return a
+        return None
+
+
+# ------------------------------------------------------------------ defence
+
+class DefensePolicy:
+    """Answers an incoming attack, and LEARNS which answer pays per situation.
+
+    When the opponent starts an attack in range, one response is chosen and
+    committed to for that attack:
+
+      jg0..jg3  just guard: tap Guard 0-3 decisions after the attack started.
+                Timing is the whole skill, and it differs per move, so each
+                delay is its own arm and the bandit finds the one that lands.
+      guard     hold Guard for as long as the attack lasts
+      counter   Guard + Q1 - armoured Counter Attack / Counter Crash
+      dodge     Guard + sideways stick
+      attack    a Target Combo, which beats an Unblockable
+      none      leave it to the model
+
+    Each choice is scored ~1.2 s later: +3 per just guard, +3 when a counter
+    is followed by the opponent in hitstun, +0.6 per guarded hit, +1 if the
+    opponent got hit at all, -2 for being guard-broken and -10 x health lost.
+    Just guard and counter are weighted far above an ordinary hit on purpose.
+
+    Situation = opponent's action class x distance band. Priors come from the
+    game's rock-paper-scissors (Counter beats Target Combo, Target Combo beats
+    Unblockable, Unblockable goes through Guard and Counter), so the first
+    matches are sensible and the bandit refines from there. What it learns is
+    saved to models/defense.json and carried into the next session.
+    """
+
+    OPTIONS = ("jg0", "jg1", "jg2", "jg3", "guard", "counter", "dodge",
+               "attack", "none")
+    PRIORS = {
+        "combo":   {"counter": 1.5, "jg1": 1.0, "jg2": 1.0, "jg0": 0.8,
+                    "guard": 0.5, "dodge": 0.2, "attack": -0.5},
+        "attack":  {"jg1": 1.0, "jg2": 1.0, "jg3": 0.8, "jg0": 0.6,
+                    "guard": 0.6, "dodge": 0.3},
+        "unblock": {"attack": 1.2, "dodge": 1.0, "counter": -1.5,
+                    "guard": -1.5, "jg0": -0.8, "jg1": -0.8},
+        "pu":      {"guard": 0.6, "dodge": 0.6, "jg1": 0.4, "counter": -1.5},
+        "rising":  {"guard": 0.5, "dodge": 0.5, "jg1": 0.4},
+        "assist":  {"guard": 0.5, "jg1": 0.5, "jg2": 0.4},
+    }
+    # How close an attack must be to be worth answering, per class.
+    # "attack" is every quirk skill, projectiles included. Answering those
+    # from across the stage made two bots stand still blocking each other's
+    # projectiles forever; at range, moving beats standing to guard.
+    REACH = {"combo": 450.0, "unblock": 450.0, "assist": 600.0,
+             "attack": 450.0, "pu": 900.0, "rising": 700.0}
+    PRIOR_N = 3.0
+    HORIZON = 1.2
+
+    def __init__(self, path="models/defense.json", epsilon=0.12, learn=True,
+                 max_start=8):
+        self.path = Path(path) if path else None
+        self.epsilon = epsilon
+        self.learn = learn
+        # Only react to an attack we saw START (act_n small); one already
+        # deep in its animation is too late to time.
+        self.max_start = max_start
+        self.q = {}                      # ctx -> {opt: [sum, n]}
+        self.active = None               # the commitment for the current attack
+        self.pending = []                # choices waiting to be scored
+        self.env = Envelope()
+        self.stats = {"chosen": {}, "jg": 0, "counter_hit": 0, "gok": 0,
+                      "gbrk": 0, "scored": 0}
+        self._last_en = (None, None, None)
+        self._updates = 0
+        self.warned_no_act = False
+        self._load()
+
+    # ---- persistence ----
+    def _load(self):
+        if self.path and self.path.exists():
+            try:
+                self.q = json.loads(self.path.read_text(encoding="utf-8")).get("q", {})
+            except (OSError, ValueError):
+                self.q = {}
+
+    def save(self):
+        if not (self.path and self.learn):
+            return
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(json.dumps({"q": self.q}, indent=1), encoding="utf-8")
+        except OSError:
+            pass
+
+    # ---- bandit ----
+    def _ctx(self, cls, dist, hp=None):
+        band = "near" if dist < 250 else "mid" if dist < 600 else "far"
+        # Low health is its own situation: a counter that is a good gamble at
+        # full health is how a fighter at 20% dies. Suffix only when low, so
+        # tables learned before this split keep their keys.
+        low = "|low" if isinstance(hp, (int, float)) and hp < D.DANGER_HP else ""
+        return f"{cls}|{band}{low}"
+
+    def _value(self, ctx, cls, opt):
+        s, n = self.q.get(ctx, {}).get(opt, (0.0, 0))
+        prior = self.PRIORS.get(cls, {}).get(opt, 0.0)
+        return (s + prior * self.PRIOR_N) / (n + self.PRIOR_N), n
+
+    def _choose(self, ctx, cls):
+        if self.learn and random.random() < self.epsilon:
+            return random.choice(self.OPTIONS)
+        total = sum(n for _, n in self.q.get(ctx, {}).values()) + 1
+        best, bestv = "none", -1e9
+        for opt in self.OPTIONS:
+            v, n = self._value(ctx, cls, opt)
+            v += 0.3 * math.sqrt(math.log(total + 1) / (n + 1))   # UCB bonus
+            if v > bestv:
+                best, bestv = opt, v
+        return best
+
+    def _update(self, ctx, opt, r):
+        arm = self.q.setdefault(ctx, {}).setdefault(opt, [0.0, 0])
+        arm[0] += float(r)
+        arm[1] += 1
+        self._updates += 1
+        if self._updates % 50 == 0:
+            self.save()
+
+    # ---- live ----
+    def _events(self, me, en):
+        """Monotone event deltas this tick for the current point fighters."""
+        mk, ek = me.get("key"), en.get("key")
+        return {
+            "jg": self.env.delta(mk, "ev_jg", me.get("ev_jg")),
+            "js": self.env.delta(mk, "ev_js", me.get("ev_js")),
+            "gok": self.env.delta(mk, "ev_gok", me.get("ev_gok")),
+            "gbrk": self.env.delta(mk, "ev_gbrk", me.get("ev_gbrk")),
+            "ctr": self.env.delta(mk, "ev_ctr", me.get("ev_ctr")),
+            "en_hit": self.env.delta(ek, "ev_hit", en.get("ev_hit")),
+        }
+
+    def _score(self, ev, me, now):
+        """Accumulate outcomes into every pending choice; close finished ones."""
+        hp = _hp(me)
+        for p in self.pending:
+            if me.get("key") != p["me"]:
+                p["dead"] = True           # tagged out; the outcome is not ours
+                continue
+            p["r"] += 3.0 * ev["jg"] + 2.0 * ev["js"] + 1.0 * ev["gok"] - 2.0 * ev["gbrk"]
+            if ev["en_hit"]:
+                p["r"] += 1.0 if not p["hit"] else 0.0
+                p["hit"] = True
+                if p["opt"] == "counter" and not p["ctr_hit"]:
+                    p["r"] += 3.0
+                    p["ctr_hit"] = True
+                    self.stats["counter_hit"] += 1
+            if hp is not None:
+                p["hp_min"] = min(p["hp_min"], hp)
+        self.stats["jg"] += int(ev["jg"])
+        self.stats["gok"] += int(ev["gok"])
+        self.stats["gbrk"] += int(ev["gbrk"])
+
+        keep = []
+        for p in self.pending:
+            if p.get("dead"):
+                continue
+            if now - p["t"] >= self.HORIZON:
+                lost = max(0.0, p["hp0"] - p["hp_min"]) if p["hp0"] is not None else 0.0
+                # Same pricing as training: damage costs more the lower it
+                # leaves us, and losing the fighter is the worst outcome.
+                cost = 10.0 * lost * D.taken_weight(p["hp_min"])
+                if lost <= 0.001 and p["opt"] in ("guard", "jg0", "jg1", "jg2", "jg3", "dodge"):
+                    cost -= 0.4       # the attack passed and cost nothing
+                if p["hp0"] is not None and p["hp0"] > 0.001 and p["hp_min"] <= 0.001:
+                    cost += -D.REWARD["our_death"]
+                    self.stats["deaths"] = self.stats.get("deaths", 0) + 1
+                if self.learn:
+                    self._update(p["ctx"], p["opt"], p["r"] - cost)
+                self.stats["scored"] += 1
+            else:
+                keep.append(p)
+        self.pending = keep
+
+    def decide(self, teams, now=None):
+        """A defensive input for this decision, or None to let others act.
+
+        Returns (label, buttons, stick_or_None, hold_frames).
+        """
+        now = time.monotonic() if now is None else now
+        me, en = teams.get("me") or {}, teams.get("enemy") or {}
+        if not me or not en:
+            self.active = None
+            return None
+        if "act" not in en:
+            self.warned_no_act = True
+            return None
+
+        self._score(self._events(me, en), me, now)
+
+        my_cls, en_cls = _cls(me), _cls(en)
+        if my_cls == "damage":
+            self.active = None
+            return None                    # the escape policy's problem
+        if en_cls == "damage":
+            self.active = None
+            return None                    # we are the ones on offence
+
+        act, n = en.get("act"), en.get("act_n") or 0
+        last_key, last_act, last_n = self._last_en
+        started = (en.get("key") != last_key or act != last_act
+                   or (isinstance(last_n, (int, float)) and n < last_n))
+        self._last_en = (en.get("key"), act, n)
+
+        dist = _dist(me)
+        threat = (en_cls in self.REACH and dist <= self.REACH[en_cls])
+        if not threat:
+            self.active = None
+            return None
+
+        if started or self.active is None:
+            if n > self.max_start and self.active is None and not started:
+                return None
+            ctx = self._ctx(en_cls, dist, _hp(me))
+            opt = self._choose(ctx, en_cls)
+            self.active = {"opt": opt, "step": 0, "ctx": ctx}
+            self.stats["chosen"][opt] = self.stats["chosen"].get(opt, 0) + 1
+            self.pending.append({"ctx": ctx, "opt": opt, "t": now, "me": me.get("key"),
+                                 "hp0": _hp(me), "hp_min": _hp(me) or 0.0,
+                                 "r": 0.0, "hit": False, "ctr_hit": False})
+        else:
+            self.active["step"] += 1
+        return self._input(self.active)
+
+    @staticmethod
+    def _input(a):
+        opt, step = a["opt"], a["step"]
+        if opt.startswith("jg"):
+            k = int(opt[2:])
+            if step == k:
+                return ("JUST GUARD", (GUARD,), None, 2)
+            # Stand still until the timed tap - attacking into it throws the
+            # timing away.
+            return ("wait", (), (0.0, 0.0), 1) if step < k else None
+        if opt == "guard":
+            return ("GUARD", (GUARD,), (0.0, 0.0), 4)
+        if opt == "counter":
+            return ("COUNTER", COUNTER_ATTACK, None, 3) if step == 0 else None
+        if opt == "dodge":
+            if step == 0:
+                side = random.choice((-1.0, 1.0))
+                return ("DODGE", (GUARD,), (side, 0.0), 3)
+            return None
+        if opt == "attack":
+            return ("TARGET COMBO", (NATTACK,), None, 3) if step == 0 else None
+        return None
+
+    def summary(self):
+        s = self.stats
+        return (f"defence: chose {dict(sorted(s['chosen'].items()))}; "
+                f"just guards {s['jg']}, counters landed {s['counter_hit']}, "
+                f"guarded hits {s['gok']}, guard breaks {s['gbrk']}")
+
+    def table(self, top=12):
+        """Best-known answer per situation, for the end-of-run report."""
+        rows = []
+        for ctx in sorted(self.q):
+            cls = ctx.split("|")[0]
+            best = max(self.OPTIONS, key=lambda o: self._value(ctx, cls, o)[0])
+            v, n = self._value(ctx, cls, best)
+            total = sum(nn for _, nn in self.q[ctx].values())
+            rows.append(f"    {ctx:<16} -> {best:<8} ({v:+.2f}, {total} tries)")
+        return rows[:top]
+
+
+# ---------------------------------------------------------------------- tag
+
+class TagPolicy:
+    """Decides when to Change, and to whom.
+
+    What the old version got wrong, from reading tonight's runs and the game:
+
+    * It judged "the opponent is in hitstun" from health deltas, because the
+      opponent's stun/kb/grab never fire. Health flickers between duplicate
+      lua_States, and in any run where the opponent was not identified it saw
+      no hits at all - so it never tagged. It now reads the opponent's `act`.
+    * About half its presses did nothing. Each partner has a cooldown after a
+      Change (the tutorial says so), and it kept pressing into it. A press
+      that produces no swap now marks that partner unavailable, and the
+      cooldown estimate is learned from those failures.
+    * Which trigger calls whom was learned as trigger -> character, which
+      breaks as soon as the point character rotates. It is now learned per
+      (point character, trigger).
+
+    When it tags:
+      change combo - hand an ongoing combo to the next fighter. Not after two
+                     jabs: each fighter first runs its own segment of the
+                     combo up to a per-character target (learned from how long
+                     that character's segments get before the combo drops),
+                     and only tags early to RESCUE a combo that is about to
+                     drop. At most three fighters per chain - the third one
+                     finishes with Plus Ultra (ResourcePolicy) instead.
+      retreat      - our fighter is hurt and there is a safe window (they are
+                     in hitstun, far away, or we are guarding - "Change while
+                     Guarding" is an advanced technique in the tutorial).
+      rebalance    - a partner is much healthier and it is safe.
+    Never while we are being hit: the partner would inherit the combo.
+    """
+
+    def __init__(self, min_hits=2, cooldown=12, retreat_hp=0.4, save_hp=0.2,
+                 min_incoming_hp=0.2, hit_window=10, cd_guess=5.0,
+                 swap_timeout=1.2, rebalance_gap=0.35, team=None):
+        self.min_hits = min_hits
+        self.cooldown = cooldown
+        self.retreat_hp = retreat_hp
+        # Below this, tag out even without a safe window: see should_tag.
+        self.save_hp = save_hp
+        self.min_incoming_hp = min_incoming_hp
+        self.hit_window = hit_window
+        self.cd = cd_guess               # learned partner cooldown, seconds
+        self.swap_timeout = swap_timeout
+        self.rebalance_gap = rebalance_gap
+        self.team = list(team or [])     # pick order, a prior for the triggers
+
+        self.partner = TAG_SIDES[0]
+        self.hits = 0
+        self.since_hit = 10 ** 6
+        self.since_tag = 10 ** 6
+        self.chain_len = 0
+        self.reason = ""
+        self.trigger_map = {}            # (point, trigger) -> arrival key
+        self.blocked = {}                # trigger -> monotonic time it frees
+        self.last_seen_out = {}          # key -> time it left the point
+        self._pending = None             # (trigger, from_key, t, target)
+        self._last_me = None
+        self._last_en_act = None
+        self.env = Envelope()
+        self.stats = {"pressed": 0, "swapped": 0, "failed": 0, "save": 0,
+                      "change_combo": 0, "rescue": 0, "retreat": 0, "rebalance": 0}
+        # Combo chains (ajbot.chain.ChainTracker), shared with the other
+        # policies and updated once per tick by the caller.
+        self.chain = None
+        # Per character: segment lengths that ended with the combo DROPPING
+        # (not with a tag) - how far that character can take a combo alone.
+        self.seg_hist = {}
+        self.seg_prior = {}               # from the combo book, if loaded
+        self.default_target = 5
+        self.rescue_stall = 0.45          # s since last hit: combo about to drop
+        self._last_combo = None
+
+    def segment_target(self, char):
+        """Hits a character should land before handing the combo on."""
+        hist = self.seg_hist.get(char) or []
+        if len(hist) >= 3:
+            h = sorted(hist[-15:])
+            median = h[len(h) // 2]
+            # Hand over a little BEFORE the typical drop point.
+            return max(3, min(12, int(round(median * 0.85))))
+        return self.seg_prior.get(char, self.default_target)
+
+    def _track_segments(self):
+        c = self.chain.by_us if self.chain else None
+        prev = self._last_combo
+        if prev is not None and prev is not c and prev.segments and prev.hits >= 2:
+            char, hits = prev.segments[-1][0], prev.segments[-1][1]
+            # The last segment ended because the combo dropped, not a tag.
+            self.seg_hist.setdefault(char, []).append(hits)
+        self._last_combo = c
+
+    def observe(self, teams, now=None):
+        now = time.monotonic() if now is None else now
+        self.since_tag += 1
+        self.since_hit += 1
+        self._teams = teams
+        self._track_segments()
+        me, en = teams.get("me") or {}, teams.get("enemy") or {}
+        mk = me.get("key")
+
+        # Hits: the opponent entering hitstun (new damage action) or its
+        # event counter moving.
+        hit = self.env.delta(en.get("key"), "ev_hit", en.get("ev_hit")) > 0
+        en_act = (en.get("key"), en.get("act"))
+        if _cls(en) == "damage" and en_act != self._last_en_act:
+            hit = True
+        self._last_en_act = en_act
+        if hit:
+            self.hits += 1
+            self.since_hit = 0
+        elif self.since_hit > self.hit_window:
+            self.hits = 0
+
+        # A swap: the point character changed.
+        if mk and self._last_me and mk != self._last_me:
+            self.last_seen_out[self._last_me] = now
+            if self._pending:
+                trig, before, t0, _target = self._pending
+                self.trigger_map[(before, trig)] = mk
+                self.stats["swapped"] += 1
+                self._pending = None
+        if mk:
+            self._last_me = mk
+
+        if self._pending and now - self._pending[2] > self.swap_timeout:
+            trig, before, t0, target = self._pending
+            # Nothing happened: that partner is on cooldown. Learn roughly how
+            # long it lasts from how soon after its last Change we tried.
+            self.blocked[trig] = now + self.cd
+            left = self.last_seen_out.get(target) if target else None
+            if left is not None:
+                self.cd = min(20.0, max(self.cd, now - left + 0.5))
+            self.stats["failed"] += 1
+            self._pending = None
+
+    @staticmethod
+    def _bench(teams):
+        """Team-mates that can actually be tagged in.
+
+        Excludes the point fighter's own alternate form (Dabi and his burning
+        form are one fighter with two ids) and unnamed companion states that
+        never act - neither is a partner the triggers can call.
+        """
+        from .roster import base_name
+        me_rec = teams.get("me") or {}
+        me = me_rec.get("key")
+        me_base = base_name(me)
+        out = []
+        for c in (teams.get("mine") or []):
+            k = c.get("key")
+            if k == me or c.get("dead"):
+                continue
+            if me_base and base_name(k) == me_base:
+                continue
+            if base_name(k) is None and c.get("act") in (None, "None") \
+                    and c.get("cmd") in (None, "None"):
+                continue
+            out.append(c)
+        return out
+
+    def _trigger_for(self, point, key):
+        for (p, trig), who in self.trigger_map.items():
+            if p == point and who == key:
+                return trig
+        tried = {trig for (p, trig) in self.trigger_map if p == point}
+        untried = [t for t in TAG_SIDES if t not in tried]
+        return untried[0] if untried else TAG_SIDES[0]
+
+    def _candidates(self, teams, now):
+        point = (teams.get("me") or {}).get("key")
+        out = []
+        for c in self._bench(teams):
+            hp = _hp(c)
+            if hp is None or hp < self.min_incoming_hp:
+                continue
+            trig = self._trigger_for(point, c.get("key"))
+            if self.blocked.get(trig, 0.0) > now:
+                continue
+            out.append((hp, c, trig))
+        out.sort(key=lambda x: -x[0])
+        return out
+
+    def should_tag(self, teams, now=None):
+        now = time.monotonic() if now is None else now
+        if self.since_tag < self.cooldown or self._pending:
+            return False
+        me, en = teams.get("me") or {}, teams.get("enemy") or {}
+        if not me or pinned(me):
+            return False
+        cands = self._candidates(teams, now)
+        if not cands:
+            return False
+        in_hp, incoming, trig = cands[0]
+
+        my_cls, en_cls = _cls(me), _cls(en)
+        en_stunned = en_cls == "damage" or self.since_hit <= self.hit_window
+        attacking = my_cls in OFFENCE if my_cls is not None else True
+        my_hp = _hp(me) or 0.0
+        far = _dist(me) > 700
+
+        reason = None
+        c = self.chain.by_us if self.chain else None
+        if my_hp <= self.save_hp and in_hp >= my_hp + 0.15:
+            # About to lose this fighter. A KO costs far more than handing the
+            # partner an awkward spot, so no safe window is required - only
+            # that we are not mid-combo on the receiving end (checked above).
+            reason = "save"
+        elif c is not None and attacking and c.chars < 3:
+            from .roster import base_name
+            tgt = self.segment_target(base_name(me.get("key")) or me.get("key"))
+            seg, stall = c.segment_hits, c.stalled(now)
+            if seg >= tgt:
+                reason = "change_combo"       # this fighter's segment is done
+            elif seg >= 2 and stall >= self.rescue_stall and en_cls == "damage":
+                reason = "rescue"             # combo about to drop: pass it on
+        elif c is None and self.chain is None and en_stunned and attacking \
+                and self.hits >= self.min_hits:
+            reason = "change_combo"           # no chain tracker: old rule
+        elif my_hp <= self.retreat_hp and in_hp > my_hp + 0.1 and (
+                en_stunned or far or my_cls == "guard"):
+            reason = "retreat"
+        elif in_hp - my_hp >= self.rebalance_gap and (en_stunned or far):
+            reason = "rebalance"
+        if not reason:
+            return False
+        self.partner = trig
+        self.reason = reason
+        self._target = incoming.get("key")
+        return True
+
+    def tagged(self, teams=None, now=None):
+        now = time.monotonic() if now is None else now
+        self.chain_len = self.chain_len + 1 if self.since_tag <= 40 else 1
+        self.since_tag = 0
+        self.hits = 0
+        self.stats["pressed"] += 1
+        if self.reason:
+            self.stats[self.reason] = self.stats.get(self.reason, 0) + 1
+        point = ((teams or {}).get("me") or {}).get("key")
+        self._pending = (self.partner, point, now, getattr(self, "_target", None))
+
+    def summary(self):
+        s = self.stats
+        return (f"tags: pressed {s['pressed']}, swapped {s['swapped']}, "
+                f"no effect {s['failed']} (partner cooldown est. {self.cd:.1f}s); "
+                f"change combos {s['change_combo']} (+{s['rescue']} rescues), "
+                f"retreats {s['retreat']}, saves {s['save']}, "
+                f"rebalances {s['rebalance']}; segment targets "
+                f"{ {k: self.segment_target(k) for k in self.seg_hist} }")
+
+
+# ------------------------------------------------------------------- escape
+
+class EscapePolicy:
+    """Spends the emergency dodge to break out of the opponent's combo.
+
+    Shares its input (right stick click) with Rising: pressed while being hit
+    it escapes, pressed free it activates Rising. One at the start of a
+    match, one more each time one of your fighters goes down.
+    """
+
+    def __init__(self, budget=1, min_hits_taken=4, cooldown=60, low_hp=0.4,
+                 min_damage=0.12):
+        self.min_damage = min_damage
+        self.chain = None                 # shared ChainTracker, if any
+        self.budget = budget
+        self.min_hits_taken = min_hits_taken
+        self.cooldown = cooldown
+        self.low_hp = low_hp
+        self.since = 10 ** 6
+        self.taken = 0
+        self.used = 0
+        self.env = Envelope()
+        self._last_act = None
+        self._dead = set()
+
+    def observe(self, teams, snap=None):
+        self.since += 1
+        me = teams.get("me") or {}
+        mk = me.get("key")
+        hit = self.env.delta(mk, "ev_hit", me.get("ev_hit")) > 0
+        a = (mk, me.get("act"))
+        if _cls(me) == "damage" and a != self._last_act:
+            hit = True
+        self._last_act = a
+        if hit:
+            self.taken += 1
+        elif not pinned(me):
+            self.taken = 0            # the combo ended
+
+        for rec in (teams.get("mine") or []):
+            key = rec.get("key")
+            h = rec.get("hp")
+            dead = rec.get("dead") or (isinstance(h, (int, float)) and h <= 0.0001)
+            if key and dead and key not in self._dead:
+                self._dead.add(key)
+                self.budget += 1
+
+    def should_escape(self, teams):
+        """Spend the one stock on a combo that is actually hurting.
+
+        From the recordings: the stock went on the first stray combo of the
+        match (a grab at full health), and most later presses did nothing -
+        no stock left, or pressed at 0 health while already being KO'd, or
+        late in a knockdown. It now waits for a real combo: several hits, or
+        real damage, or any combo at low health; and never presses on a
+        fighter that is already down or lying in a knockdown.
+        """
+        if self.budget - self.used <= 0 or self.since < self.cooldown:
+            return False
+        me = teams.get("me") or {}
+        if not pinned(me):
+            return False
+        hp = _hp(me)
+        if hp is None or hp <= 0.001 or me.get("dead"):
+            return False                  # already KO'd: nothing to save
+        if "ok_esc" in me and not me.get("ok_esc"):
+            return False                  # the game says no stock
+        if (me.get("act_n") or 0) > 12:
+            return False                  # lying in a knockdown, not a combo
+        on = self.chain.on_us if self.chain else None
+        hits = on.hits if on else self.taken
+        dmg = on.damage if on else 0.0
+        if hp <= self.low_hp:
+            return hits >= 2 or dmg >= 0.06
+        if hp >= 0.9 and hits < 6:
+            return False                  # healthy: keep it for later
+        return hits >= self.min_hits_taken or dmg >= self.min_damage
+
+    def spend(self):
+        self.used += 1
+        self.since = 0
+        self.taken = 0
+
+
+# ---------------------------------------------------------------- resources
+
+class ResourcePolicy:
+    """Spends Rising and Plus Ultra, and follows a 2-bar Plus Ultra with a
+    Plus Ultra Combo (press a trigger during the animation).
+
+    A resource worth using a few times a match is exactly what a frequency-
+    driven classifier never predicts, so rules spend them.
+    """
+
+    def __init__(self, use_rising=True, use_pu=True, cooldown=90,
+                 rising_action_cooldown=30, pu_combo=True):
+        self.chain = None                 # shared ChainTracker, if any
+        self.tagger = None                # for "can we still tag?" and targets
+        self.use_rising = use_rising
+        self.use_pu = use_pu
+        self.cooldown = cooldown
+        self.rising_action_cooldown = rising_action_cooldown
+        self.pu_combo = pu_combo
+        self.since = 10 ** 6
+        self.since_ra = 10 ** 6
+        self._pu_at = None            # when a 2-bar Plus Ultra was fired
+        self.spent = {"rising": 0, "pu": 0, "rising_action": 0, "pu_combo": 0}
+
+    def decide(self, teams, now=None):
+        """'pu', 'pu_combo', 'rising', 'rising_action', or None."""
+        now = time.monotonic() if now is None else now
+        self.since += 1
+        self.since_ra += 1
+        me = teams.get("me") or {}
+        en = teams.get("enemy") or {}
+        en_cls = _cls(en)
+        pressured = (en_cls == "damage") if en_cls is not None else bool(
+            en.get("stun") or en.get("kb") or en.get("grab"))
+
+        if self._pu_at is not None:
+            dt = now - self._pu_at
+            if 0.5 <= dt <= 1.6:
+                self._pu_at = None
+                return "pu_combo"
+            if dt > 1.6:
+                self._pu_at = None
+
+        if self.since >= self.cooldown:
+            if self.use_pu and me.get("ok_pu1") and self._pu_finisher(me, en, now):
+                return "pu"
+            if self.use_pu and me.get("ok_pu1") and self.chain is None and pressured:
+                return "pu"                   # no chain tracker: old rule
+            if self.use_rising and not me.get("awake") and not pinned(me):
+                if me.get("awk_full") or me.get("awk_pow"):
+                    return "rising"
+
+        if (self.use_rising and me.get("awake") and pressured
+                and self.since_ra >= self.rising_action_cooldown):
+            return "rising_action"
+        return None
+
+    def _pu_finisher(self, me, en, now):
+        """Plus Ultra as the END of a combo chain, not the start of one.
+
+        The aim is three fighters' segments in one chain with a Plus Ultra on
+        the last - that is where it takes a stock early. So it fires when:
+          * the chain already has three fighters, or no partner can be called
+            to extend it, and the current segment is done or about to drop;
+          * or the opponent is low enough that it finishes them;
+          * or a very long chain is running (it will not get better).
+        """
+        c = self.chain.by_us if self.chain else None
+        if c is None or _cls(en) != "damage":
+            return False
+        from .roster import base_name
+        tg = self.tagger
+        target = tg.segment_target(base_name(me.get("key")) or me.get("key")) if tg else 5
+        teams = getattr(tg, "_teams", None) if tg else None
+        can_tag = bool(teams and tg._candidates(teams, now))
+        segment_done = c.segment_hits >= target or (
+            c.segment_hits >= 2 and c.stalled(now) >= 0.4)
+        en_hp = _hp(en)
+        if en_hp is not None and en_hp <= 0.22 and c.hits >= 2:
+            return True
+        if (c.chars >= 3 or not can_tag) and segment_done and c.hits >= 4:
+            return True
+        return c.hits >= 18
+
+    def spend(self, what, teams=None, now=None):
+        now = time.monotonic() if now is None else now
+        if what == "pu" and self.chain is not None:
+            self.chain.note_pu()
+        if what == "rising_action":
+            self.since_ra = 0
+        elif what != "pu_combo":
+            self.since = 0
+        if what == "pu" and self.pu_combo:
+            me = (teams or {}).get("me") or {}
+            if me.get("ok_pu2"):
+                self._pu_at = now       # 2+ bars: a Plus Ultra Combo is on
+        self.spent[what] = self.spent.get(what, 0) + 1
+
+
+RESOURCE_INPUT = {
+    "pu": (GUARD, QUIRKTEC2),
+    "rising": RISING_ENTER,
+    "rising_action": RISING_ACTION,
+    "pu_combo": (),                   # a trigger, applied by the caller
+}
+
+ESCAPE_INPUT = RISING_ENTER
+
+
+def press_escape(pad, policy, hold_frames=4):
+    pad.hold(*ESCAPE_INPUT)
+    pad.tick(hold_frames)
+    pad.release(*ESCAPE_INPUT)
+    policy.spend()
+
+
+def press_resource(pad, policy, what, hold_frames=4, teams=None, side="left"):
+    if what == "pu_combo":
+        pad.trigger(side, 1.0)
+        pad.tick(hold_frames)
+        pad.trigger(side, 0.0)
+    else:
+        buttons = RESOURCE_INPUT[what]
+        pad.hold(*buttons)
+        pad.tick(hold_frames)
+        pad.release(*buttons)
+    policy.spend(what, teams)
+
+
+def press_tag(pad, policy, hold_frames=5, teams=None):
+    """Pull the trigger that calls in the chosen partner."""
+    side = policy.partner
+    pad.trigger(side, 1.0)
+    pad.tick(hold_frames)
+    pad.trigger(side, 0.0)
+    policy.tagged(teams)
+
+
+def press_defense(pad, plan):
+    """Apply a DefensePolicy decision: (label, buttons, stick, hold)."""
+    _label, buttons, stick, hold = plan
+    if stick is not None:
+        pad.stick(stick)
+    if buttons:
+        pad.hold(*buttons)
+    pad.tick(hold)
+    if buttons:
+        pad.release(*buttons)
+
+
+def plan_press(action, stick):
+    """Resolve a decision into (buttons, stick, action) WITHOUT touching a pad."""
+    if not action or action in UNMAPPED:
+        return (), stick, None
+    if action not in ACTION_MAP:
+        _unknown_actions.observe(action)
+        return (), stick, None
+    buttons, needs_stick = ACTION_MAP[action]
+    if needs_stick and abs(stick[0]) + abs(stick[1]) < 0.3:
+        # A lever-input move with no direction held becomes the plain version,
+        # which is a different move. Nudge toward the opponent (or sideways
+        # for a dodge, which forward would turn into a lunge).
+        stick = (1.0, 0.0) if action == "Dodge" else (0.0, 1.0)
+    return buttons, stick, action
+
+
+def press(pad, action, stick, hold_frames=3):
+    """Apply one decision to the pad. Returns what was actually pressed."""
+    buttons, stick, name = plan_press(action, stick)
+    pad.stick(stick)
+    if name is None:
+        pad.tick(1)
+        return None
+    pad.hold(*buttons)
+    pad.tick(ACTION_HOLD_OVERRIDE.get(name, hold_frames))
+    pad.release(*buttons)
+    return name
