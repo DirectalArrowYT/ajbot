@@ -1,0 +1,61 @@
+{
+ "char": "Toga",
+ "combos": [
+  {
+   "id": "toga-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-f10b97",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-37d11f",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-28d979",
+   "tier": "hypothetical",
+   "notation": "TQ2 > TQ2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-17f1d4",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > TQ2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-0d6ed2",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > TQ2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "toga-d57a6c",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ2 > TQ2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

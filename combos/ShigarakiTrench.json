@@ -1,0 +1,78 @@
+{
+ "char": "ShigarakiTrench",
+ "combos": [
+  {
+   "id": "shigarakitrench-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-da1cfc",
+   "tier": "hypothetical",
+   "notation": "TQ1 > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-5be976",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-2dcdaa",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > Q2 > Q2",
+   "source": "ml",
+   "damage": 0.284,
+   "notes": "Found in recordings: landed 6 time(s)."
+  },
+  {
+   "id": "shigarakitrench-8f1591",
+   "tier": "hypothetical",
+   "notation": "Q2 > Q2 > Q2 > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-339dfa",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > TQ1 > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-3f5c39",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > Q2 > Q2 > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shigarakitrench-d48951",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > Q2 > Q2 > TQ1 > TQ2",
+   "source": "ml",
+   "damage": 0.282,
+   "notes": "Found in recordings: landed 6 time(s)."
+  },
+  {
+   "id": "shigarakitrench-983ba9",
+   "tier": "hypothetical",
+   "notation": "A > CA > Q2 > Q2 > Q2 > TQ1 > TQ2",
+   "source": "ml",
+   "damage": 0.361,
+   "notes": "Found in recordings: landed 2 time(s)."
+  }
+ ]
+}

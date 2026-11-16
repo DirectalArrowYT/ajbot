@@ -515,6 +515,47 @@ def route(text, char, name=None):
     return r
 
 
+TEXT_OF = {"Melee": "A", "ExMelee": "CA", "CounterAttack": "GC", "Unguardable": "UB",
+           "Unique1": "Q1", "Unique2": "Q2", "ExUnique1": "TQ1", "ExUnique2": "TQ2",
+           "PlusUltra1": "PU", "PlusUltra2": "PU2", "Jump": "Jump", "DashForward": "Dash",
+           "Dash": "Dash", "DashBack": "Back Dash", "Dodge": "Dodge", "Guard": "Guard",
+           "JustGuard": "JG", "Escape": "Escape", "Awaking": "Rising",
+           "ExtremeAction": "EA"}
+FOLLOW_TEXT = {v: TEXT_OF[k] for k, v in TQ2_FOLLOW.items() if k != "ExUnique2"}
+
+
+def to_text(labels, char=None):
+    """Decision labels -> notation ("Melee, Melee, Unique1" -> "AA > Q1").
+    None when a label has no notation. Check with parse() before trusting it:
+    the Bakugo TQ2 follow-ups only read back right after a TQ2."""
+    out = []
+    for lab in labels:
+        if lab in FOLLOW_TEXT and out and out[-1].startswith("TQ2"):
+            out.append(FOLLOW_TEXT[lab])
+            continue
+        t = TEXT_OF.get(lab)
+        if t is None:
+            return None
+        if t == "A" and out and re.fullmatch(r"A+", out[-1]):
+            out[-1] += "A"
+        else:
+            out.append(t)
+    return " > ".join(out) if out else None
+
+
+def round_trips(labels, char):
+    """Notation for `labels` that parse() reads back as exactly those labels."""
+    text = to_text(labels, char)
+    if not text:
+        return None
+    try:
+        back = [s["label"] for s in parse(text, char, use_routes=False)]
+    except NotationError:
+        return None
+    norm = lambda ls: ["DashForward" if l == "Dash" else l for l in ls]
+    return text if norm(back) == norm(labels) else None
+
+
 def describe(step):
     s = step["label"] + (f" -> {step['tag']}" if step.get("tag") else "")
     if step.get("hold_frames"):

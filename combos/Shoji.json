@@ -1,0 +1,181 @@
+{
+ "char": "Shoji",
+ "combos": [
+  {
+   "id": "shoji-f7a9e2",
+   "tier": "hypothetical",
+   "notation": "AAAAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-5d8b07",
+   "tier": "hypothetical",
+   "notation": "AA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-b10aff",
+   "tier": "hypothetical",
+   "notation": "CA > CA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-e83afa",
+   "tier": "hypothetical",
+   "notation": "CA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-375029",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-4283e3",
+   "tier": "hypothetical",
+   "notation": "AA > Q1 > TQ2",
+   "source": "ml",
+   "damage": 0.267,
+   "notes": "Found in recordings: landed 3 time(s)."
+  },
+  {
+   "id": "shoji-33fe66",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-7ab39f",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-f912da",
+   "tier": "hypothetical",
+   "notation": "AAAAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-d17c3d",
+   "tier": "hypothetical",
+   "notation": "AAAAA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-e6b662",
+   "tier": "hypothetical",
+   "notation": "AAAAA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-c17bf9",
+   "tier": "hypothetical",
+   "notation": "AA > CA > CA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-bc36d5",
+   "tier": "hypothetical",
+   "notation": "AA > CA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-92f8f0",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-e86d7e",
+   "tier": "hypothetical",
+   "notation": "CA > CA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-52bc45",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-5188db",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-7713f2",
+   "tier": "hypothetical",
+   "notation": "AAAAA > CA > CA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-ed0037",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > CA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-9f34cd",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-c41f78",
+   "tier": "hypothetical",
+   "notation": "AA > CA > CA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-599aff",
+   "tier": "hypothetical",
+   "notation": "AAAAA > CA > CA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "shoji-f25b36",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > CA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

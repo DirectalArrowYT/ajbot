@@ -1,0 +1,60 @@
+name: Combo
+description: Suggest a combo for the combo library, or report how a listed one went
+title: "[Combo] "
+labels: ["combo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Combos are written in the bot's notation, e.g. `AAA > Q1 > Dodge Cancel > AA > Q1 > PU`
+        (A attack, CA counter attack, UB unblockable, Q1/Q2 quirks, TQ1/TQ2 tilt quirks, PU Plus Ultra,
+        j.X jump then X, t.NAME.X tag in NAME). See combos/README.md for the full list.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this?
+      options:
+        - A new combo
+        - Test result for a combo already listed
+        - A listed combo is wrong or should change tier
+    validations:
+      required: true
+  - type: input
+    id: character
+    attributes:
+      label: Character (who starts the combo)
+      placeholder: Bakugo
+    validations:
+      required: true
+  - type: input
+    id: notation
+    attributes:
+      label: Combo
+      placeholder: AAA > Q1 > Dodge Cancel > AA > Q1 > PU
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: How sure are you?
+      options:
+        - Authored - works every time
+        - Potential - works, with a catch (say which below)
+        - Hypothetical - not proven yet
+    validations:
+      required: true
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Conditions and downsides
+      description: Where it works or not (walls, midscreen, opponents), resources needed (Rising, gauge), partners for tag combos.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: A video link, or how often it landed (e.g. 19 of 20 in training mode, or the bot's practice result).
+  - type: input
+    id: credit
+    attributes:
+      label: Credit as
+      description: The name to list as author (optional).

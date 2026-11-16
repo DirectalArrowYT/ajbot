@@ -1,0 +1,96 @@
+{
+ "char": "Iida",
+ "combos": [
+  {
+   "id": "iida-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-263116",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-67e4cc",
+   "tier": "hypothetical",
+   "notation": "AA > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-9e5483",
+   "tier": "hypothetical",
+   "notation": "Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-88bdee",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-404c1e",
+   "tier": "hypothetical",
+   "notation": "AA > Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-573e91",
+   "tier": "hypothetical",
+   "notation": "CA > Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-8952f5",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-dc687d",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "iida-8593c8",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q1 > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

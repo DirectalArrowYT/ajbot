@@ -11,6 +11,35 @@ use crate::{display, App, SavedRoute};
 use eframe::egui::{self, RichText};
 use std::time::Instant;
 
+const REPO_ISSUES: &str = "https://github.com/DirectalArrowYT/ajbot/issues/new";
+const REPO_TREE: &str = "https://github.com/DirectalArrowYT/ajbot/blob/main";
+const TIERS: [&str; 3] = ["authored", "potential", "hypothetical"];
+
+fn tier_color(t: &str) -> egui::Color32 {
+    match t {
+        "authored" => GOOD,
+        "potential" => WARN,
+        _ => egui::Color32::from_rgb(0xb4, 0x96, 0xf0),
+    }
+}
+
+fn cap(t: &str) -> &'static str {
+    match t {
+        "authored" => "Authored",
+        "potential" => "Potential",
+        "hypothetical" => "Hypothetical",
+        _ => "?",
+    }
+}
+
+/// Percent-encoding for a query string value.
+fn url_enc(s: &str) -> String {
+    s.bytes().map(|b| match b {
+        b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+        _ => format!("%{b:02X}"),
+    }).collect()
+}
+
 /// Where the editor stands against the saved file.
 enum SaveState {
     Empty,
@@ -268,6 +297,173 @@ impl App {
         });
     }
 
+    /// combos/<char>.json for the picked character, re-read when it changes.
+    fn library_combos(&mut self) -> Vec<serde_json::Value> {
+        let char_ = self.settings.combo_char.clone();
+        let path = self.dir().join("combos").join(format!("{char_}.json"));
+        let mtime = std::fs::metadata(&path).and_then(|m| m.modified()).ok();
+        let fresh = matches!(&self.library, Some((c, t, _)) if *c == char_ && *t == mtime);
+        if !fresh {
+            let list = std::fs::read_to_string(&path).ok()
+                .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+                .and_then(|v| v["combos"].as_array().cloned())
+                .unwrap_or_default();
+            self.library = Some((char_, mtime, list));
+        }
+        self.library.as_ref().map(|l| l.2.clone()).unwrap_or_default()
+    }
+
+    /// The GitHub "Combo" issue form, prefilled.
+    fn combo_form_url(&self, kind: &str, notation: &str, evidence: &str) -> String {
+        let mut url = format!("{REPO_ISSUES}?template=combo.yml&labels=combo&character={}&notation={}",
+                              url_enc(&self.settings.combo_char), url_enc(notation));
+        url += &format!("&title={}", url_enc(&format!("[Combo] {}: {}", self.settings.combo_char, notation)));
+        if !kind.is_empty() {
+            url += &format!("&kind={}", url_enc(kind));
+        }
+        if !evidence.is_empty() {
+            url += &format!("&evidence={}", url_enc(evidence));
+        }
+        url
+    }
+
+    /// Left card, under the saved combos: the shared combo library.
+    fn ui_combo_community(&mut self, ui: &mut egui::Ui) {
+        let combos = self.library_combos();
+        let saved = self.saved.lock().unwrap().routes.clone();
+        let char_ = self.settings.combo_char.clone();
+        theme::card(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Combo library").strong().size(15.0).color(ORANGE));
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.small_button("Open on GitHub").on_hover_text(
+                        "This character's page of the shared library (combos/ in the repo)").clicked()
+                    {
+                        crate::setup::open_url(&format!("{REPO_TREE}/combos/{char_}.md"));
+                    }
+                });
+            });
+            ui.label(RichText::new(
+                "Shared combos everyone can add to. Authored: works every time. Potential: works, \
+                 with a catch. Hypothetical: not proven yet (the game's CPU combos, routes the bot \
+                 found) - practice one and report how it went.").color(MUTED).small());
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                let n = |t: &str| combos.iter().filter(|c| c["tier"] == t).count();
+                ui.selectable_value(&mut self.library_tier, String::new(), format!("All {}", combos.len()));
+                for t in TIERS {
+                    ui.selectable_value(&mut self.library_tier, t.to_string(),
+                                        RichText::new(format!("{} {}", cap(t), n(t))).color(tier_color(t)));
+                }
+            });
+            ui.add_space(4.0);
+            let mut load: Option<serde_json::Value> = None;
+            let mut report: Option<String> = None;
+            egui::ScrollArea::vertical().id_salt("combo_community").max_height(320.0)
+                .auto_shrink([false, true]).show(ui, |ui| {
+                let shown: Vec<&serde_json::Value> = combos.iter()
+                    .filter(|c| self.library_tier.is_empty() || c["tier"] == self.library_tier.as_str())
+                    .collect();
+                if shown.is_empty() {
+                    ui.label(RichText::new(if combos.is_empty() {
+                        format!("No combos for {} yet. Suggest one below.", display(&char_))
+                    } else {
+                        "None in this tier yet.".to_string()
+                    }).color(MUTED));
+                }
+                for c in shown {
+                    let tier = c["tier"].as_str().unwrap_or("");
+                    let text = c["notation"].as_str().unwrap_or("").to_string();
+                    let picked = self.settings.combo_text.trim() == text;
+                    let frame = egui::Frame::new()
+                        .fill(if picked { theme::WIDGET } else { theme::STRIPE })
+                        .corner_radius(egui::CornerRadius::same(6))
+                        .inner_margin(egui::Margin::symmetric(8, 5));
+                    let resp = frame.show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        let w = ui.available_width();
+                        ui.allocate_ui_with_layout(egui::vec2(w, 22.0),
+                            egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if tier == "hypothetical" && ui.small_button("Report").on_hover_text(
+                                "Tell the library how it went (opens a prefilled GitHub form)").clicked()
+                            {
+                                report = Some(text.clone());
+                            }
+                            theme::pill(ui, cap(tier), tier_color(tier));
+                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                let title = c["name"].as_str().filter(|n| !n.is_empty())
+                                    .map(String::from).unwrap_or_else(|| text.clone());
+                                ui.add(egui::Label::new(RichText::new(title).strong()).truncate());
+                            });
+                        });
+                        let mut sub: Vec<String> = vec![];
+                        if c["name"].as_str().is_some_and(|n| !n.is_empty()) {
+                            sub.push(text.clone());
+                        }
+                        for k in ["conditions", "downsides"] {
+                            if let Some(v) = c[k].as_str() {
+                                sub.push(v.to_string());
+                            }
+                        }
+                        if c["requires"]["awake"].as_i64().unwrap_or(0) > 0 {
+                            sub.push("needs Rising".into());
+                        }
+                        if let Some(s) = c["source"].as_str() {
+                            sub.push(match s {
+                                "game-cpu" => "from the game's CPU".into(),
+                                "ml" => "found by the bot".into(),
+                                other => other.to_string(),
+                            });
+                        }
+                        if !sub.is_empty() {
+                            ui.add(egui::Label::new(RichText::new(sub.join(" · "))
+                                .color(MUTED).small()).wrap());
+                        }
+                    }).response;
+                    let resp = resp.interact(egui::Sense::click())
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .on_hover_text("Click to open it in the editor, then Practice or Save it");
+                    if resp.clicked() {
+                        load = Some(c.clone());
+                    }
+                    ui.add_space(3.0);
+                }
+            });
+            if let Some(c) = load {
+                self.settings.combo_text = c["notation"].as_str().unwrap_or("").to_string();
+                self.settings.combo_name = c["name"].as_str().unwrap_or("").to_string();
+                self.saved_pick = None;
+                self.preview_edit = Some(Instant::now());
+                self.save_settings();
+            }
+            if let Some(text) = report {
+                // The bot's own practice of it, if this PC has some.
+                let ev = saved.iter()
+                    .find(|r| r.char_ == char_ && r.notation.as_deref().map(str::trim) == Some(text.as_str())
+                          && r.attempts > 0)
+                    .map(|r| format!("Bot practice (AJBot): landed {} of {} attempts.", r.landed, r.attempts))
+                    .unwrap_or_default();
+                crate::setup::open_url(&self.combo_form_url(
+                    "Test result for a combo already listed", &text, &ev));
+            }
+            ui.add_space(4.0);
+            let text = self.settings.combo_text.trim().to_string();
+            let listed = combos.iter().any(|c| c["notation"].as_str().map(str::trim) == Some(text.as_str()));
+            if ui.add_enabled(!text.is_empty() && !listed, egui::Button::new("Suggest the editor's combo"))
+                .on_hover_text("Opens a prefilled GitHub form to add it to the library")
+                .on_disabled_hover_text(if listed { "Already in the library" } else { "Write a combo first" })
+                .clicked()
+            {
+                let ev = saved.iter()
+                    .find(|r| r.char_ == char_ && r.notation.as_deref().map(str::trim) == Some(text.as_str())
+                          && r.attempts > 0)
+                    .map(|r| format!("Bot practice (AJBot): landed {} of {} attempts.", r.landed, r.attempts))
+                    .unwrap_or_default();
+                crate::setup::open_url(&self.combo_form_url("A new combo", &text, &ev));
+            }
+        });
+    }
+
     /// Right card: character, name, notation, Save / New.
     fn ui_combo_editor(&mut self, ui: &mut egui::Ui) {
         let routes = self.saved.lock().unwrap().routes.clone();
@@ -496,6 +692,8 @@ impl App {
         egui::ScrollArea::vertical().id_salt("combos_page").auto_shrink([false, false]).show(ui, |ui| {
             ui.columns(2, |cols| {
                 self.ui_combo_library(&mut cols[0], running);
+                cols[0].add_space(8.0);
+                self.ui_combo_community(&mut cols[0]);
                 self.ui_combo_editor(&mut cols[1]);
                 cols[1].add_space(8.0);
                 self.ui_combo_practice(&mut cols[1], running);

@@ -1,0 +1,112 @@
+{
+ "char": "AllForOne",
+ "combos": [
+  {
+   "id": "allforone-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-d99603",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-aa78e6",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-8642d0",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-415087",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-0d13a2",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > TQ2",
+   "source": "ml",
+   "damage": 0.243,
+   "notes": "Found in recordings: landed 2 time(s)."
+  },
+  {
+   "id": "allforone-9b1aaf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-f7bf4b",
+   "tier": "hypothetical",
+   "notation": "TQ2 > Q2 > Q2 > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforone-5b4830",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA > TQ2 > CA > UB > AAA > Q2 > Q1 > Q2",
+   "source": "ml",
+   "damage": 0.479,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

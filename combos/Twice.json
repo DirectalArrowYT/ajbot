@@ -1,0 +1,68 @@
+{
+ "char": "Twice",
+ "combos": [
+  {
+   "id": "twice-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-d18497",
+   "tier": "hypothetical",
+   "notation": "A > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-c8c727",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "twice-ea12d5",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

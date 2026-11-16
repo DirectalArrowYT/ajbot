@@ -1,0 +1,117 @@
+{
+ "char": "Jiro",
+ "combos": [
+  {
+   "id": "jiro-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-263116",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-1de0fe",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-2442ab",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-7ebaa5",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-375029",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-adfb7f",
+   "tier": "hypothetical",
+   "notation": "PU > PU > PU > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "jiro-7287fa",
+   "tier": "hypothetical",
+   "notation": "Q2 > Q2 > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

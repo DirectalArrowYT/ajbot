@@ -1,0 +1,71 @@
+{
+ "char": "Yaoyorozu",
+ "combos": [
+  {
+   "id": "yaoyorozu-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-7516db",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-c9e5ef",
+   "tier": "hypothetical",
+   "notation": "TQ1 > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-b88731",
+   "tier": "hypothetical",
+   "notation": "TQ1 > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-af69ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "yaoyorozu-ba45ed",
+   "tier": "hypothetical",
+   "notation": "A > Q1 > CA > TQ2",
+   "source": "ml",
+   "damage": 0.276,
+   "notes": "Found in recordings: landed 3 time(s)."
+  },
+  {
+   "id": "yaoyorozu-faab1d",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > Q2 > A > Q1 > CA",
+   "source": "ml",
+   "damage": 0.457,
+   "notes": "Found in recordings: landed 1 time(s)."
+  },
+  {
+   "id": "yaoyorozu-80287a",
+   "tier": "hypothetical",
+   "notation": "A > CA > Q1 > Jump > Dash > A > Dash > CA > TQ2 > AA",
+   "source": "ml",
+   "damage": 0.42,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

@@ -1,0 +1,131 @@
+{
+ "char": "Uraraka",
+ "combos": [
+  {
+   "id": "uraraka-df51e3",
+   "tier": "hypothetical",
+   "notation": "AAAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-bd093f",
+   "tier": "hypothetical",
+   "notation": "AAAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-d99603",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-aa78e6",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-2b6f3e",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-c8c727",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-309ef5",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-415087",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-9a8ba6",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-a7048c",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-72d3c7",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-3df58b",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "uraraka-6a0926",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

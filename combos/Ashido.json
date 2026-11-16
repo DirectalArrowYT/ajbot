@@ -1,0 +1,89 @@
+{
+ "char": "Ashido",
+ "combos": [
+  {
+   "id": "ashido-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-263116",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-1de0fe",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-8642d0",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-c8c727",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-ea12d5",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ashido-7765cc",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

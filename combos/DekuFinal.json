@@ -1,0 +1,110 @@
+{
+ "char": "DekuFinal",
+ "combos": [
+  {
+   "id": "dekufinal-df51e3",
+   "tier": "hypothetical",
+   "notation": "AAAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-6370dd",
+   "tier": "hypothetical",
+   "notation": "AAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-533698",
+   "tier": "hypothetical",
+   "notation": "AAAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-b17bf2",
+   "tier": "hypothetical",
+   "notation": "UB > AAAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-aa78e6",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-309ef5",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-5291ae",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-c0d089",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-cbe29a",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-009aeb",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-3df58b",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-024d9e",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-d00149",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > CA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-fccba4",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekufinal-b4bf6c",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

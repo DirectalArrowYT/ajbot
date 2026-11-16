@@ -1,0 +1,77 @@
+{
+ "char": "Compress",
+ "combos": [
+  {
+   "id": "compress-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-46e9b1",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-2442ab",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-3022e3",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "compress-247bc7",
+   "tier": "hypothetical",
+   "notation": "A > CA > TQ2 > Dash > Q1 > AA > CA > Dodge > Dodge > AA > CA",
+   "source": "ml",
+   "damage": 0.524,
+   "notes": "Found in recordings: landed 1 time(s)."
+  },
+  {
+   "id": "compress-15f3bb",
+   "tier": "hypothetical",
+   "notation": "Q1 > CA > Dash > TQ2 > Q2 > Dash > Dash > Dash > Dodge > Dash > Dash > TQ1 > Q1",
+   "source": "ml",
+   "damage": 0.846,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

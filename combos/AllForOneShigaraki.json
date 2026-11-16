@@ -1,0 +1,27 @@
+{
+ "char": "AllForOneShigaraki",
+ "combos": [
+  {
+   "id": "allforoneshigaraki-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforoneshigaraki-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "allforoneshigaraki-695adb",
+   "tier": "hypothetical",
+   "notation": "CA > Q1 > Dash > Dash > Dash > CA",
+   "source": "ml",
+   "damage": 1.186,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

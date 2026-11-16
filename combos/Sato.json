@@ -1,0 +1,96 @@
+{
+ "char": "Sato",
+ "combos": [
+  {
+   "id": "sato-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-46e9b1",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-64d1ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-d99603",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-aa78e6",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-8642d0",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-7ea270",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-415087",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sato-9b1aaf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

@@ -346,7 +346,10 @@ fn row(ui: &mut egui::Ui, ok: Option<bool>, label: &str, detail: &str) {
 pub fn open_url(url: &str) {
     #[cfg(windows)]
     {
-        let _ = Command::new("cmd").args(["/c", "start", "", url]).creation_flags(0x0800_0000).spawn();
+        // Straight to the URL handler: `cmd /c start` would cut the URL at
+        // its first & (query strings, like the prefilled combo form).
+        let _ = Command::new("rundll32").args(["url.dll,FileProtocolHandler", url])
+            .creation_flags(0x0800_0000).spawn();
     }
     #[cfg(not(windows))]
     {

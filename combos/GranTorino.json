@@ -1,0 +1,83 @@
+{
+ "char": "GranTorino",
+ "combos": [
+  {
+   "id": "grantorino-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-45207f",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-e83118",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-6d5f11",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-ea12d5",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-4b8afa",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-d532b0",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "grantorino-2d1170",
+   "tier": "hypothetical",
+   "notation": "A > CA > TQ2 > Q2 > Dash > Q1 > Q2 > Dodge > TQ2 > Q2 > Dodge > CA > Dash > Dodge > TQ2",
+   "source": "ml",
+   "damage": 0.473,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

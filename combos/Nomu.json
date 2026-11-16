@@ -1,0 +1,77 @@
+{
+ "char": "Nomu",
+ "combos": [
+  {
+   "id": "nomu-263116",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-115c50",
+   "tier": "hypothetical",
+   "notation": "UB > A > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-1d0601",
+   "tier": "hypothetical",
+   "notation": "UB > A > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-49efdf",
+   "tier": "hypothetical",
+   "notation": "UB > A > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-288ba4",
+   "tier": "hypothetical",
+   "notation": "UB > A > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-88bdee",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-e41273",
+   "tier": "hypothetical",
+   "notation": "A > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-ef6ff8",
+   "tier": "hypothetical",
+   "notation": "UB > A > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nomu-c73d4d",
+   "tier": "hypothetical",
+   "notation": "CA > Dash > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA",
+   "source": "ml",
+   "damage": 0.457,
+   "notes": "Found in recordings: landed 1 time(s)."
+  },
+  {
+   "id": "nomu-fa348f",
+   "tier": "hypothetical",
+   "notation": "CA > Dash > A > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA",
+   "source": "ml",
+   "damage": 0.5,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

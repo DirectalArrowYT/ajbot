@@ -1,0 +1,173 @@
+{
+ "char": "Tetsutetsu",
+ "combos": [
+  {
+   "id": "tetsutetsu-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-f10b97",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-37d11f",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-7ebaa5",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-375029",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-b67b54",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-c61add",
+   "tier": "hypothetical",
+   "notation": "TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-9a8ba6",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-dc5d27",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-729434",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-ae4cc4",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-52a900",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-7d306b",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-a39134",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-a59fd5",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-13bd11",
+   "tier": "hypothetical",
+   "notation": "CA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-f8a160",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-9a0971",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-17ca18",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "tetsutetsu-78ba0c",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > AA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

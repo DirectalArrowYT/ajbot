@@ -1,0 +1,47 @@
+{
+ "char": "HighendNomu1",
+ "combos": [
+  {
+   "id": "highendnomu1-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "highendnomu1-46e9b1",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "highendnomu1-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "highendnomu1-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "highendnomu1-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "highendnomu1-d99603",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

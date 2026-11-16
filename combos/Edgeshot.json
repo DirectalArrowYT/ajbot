@@ -1,0 +1,63 @@
+{
+ "char": "Edgeshot",
+ "combos": [
+  {
+   "id": "edgeshot-df51e3",
+   "tier": "hypothetical",
+   "notation": "AAAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-6b0adf",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA",
+   "source": "ml",
+   "damage": 0.224,
+   "notes": "Found in recordings: landed 5 time(s)."
+  },
+  {
+   "id": "edgeshot-bd093f",
+   "tier": "hypothetical",
+   "notation": "AAAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-d6b4c5",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-6370dd",
+   "tier": "hypothetical",
+   "notation": "AAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-533698",
+   "tier": "hypothetical",
+   "notation": "AAAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-545c30",
+   "tier": "hypothetical",
+   "notation": "AAAA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "edgeshot-ec9b8b",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q1 > AAAA > CA > Q2",
+   "source": "ml",
+   "damage": 0.277,
+   "notes": "Found in recordings: landed 3 time(s)."
+  }
+ ]
+}

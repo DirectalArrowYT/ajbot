@@ -20,7 +20,9 @@ shared) trained models are on the Releases page.
    game while it installs those. **Extract icons** pulls the character
    icons out of your copy of the game (`tools/iconextract`, a small
    CUE4Parse program built into each release).
-4. Put a trained model in `models/` (`models/policy.pkl`).
+4. Get a model: Train page > **Get latest model** downloads the newest
+   shared one from Releases (`python tools/get_model.py`). Or train your own
+   (below).
 5. **Play** page: pick a mode and press Start.
 
 Without the GUI: `python tools/doctor.py` prints the same checklist and
@@ -50,6 +52,35 @@ Everything needed to train is in this repo; it runs on your own PC.
    on whether 10 matches are enough to call it. Without the GUI:
    `python bot/play2.py --auto --model-b models/prev/<file> --matches 10`
    (`python -m ajbot.compare` prints the last result again).
+
+## Combo library
+
+`combos/` holds a shared list of combos per character (`combos/<Character>.json`,
+with a readable `combos/<Character>.md` page). Each combo has a tier:
+
+- **Authored**: works every time, checked by people.
+- **Potential**: works, with a catch (not near walls, needs a certain spacing,
+  inconsistent timing).
+- **Hypothetical**: not proven yet. The game's own CPU combo lists and routes
+  the bot found go here until someone tests them.
+
+The bot practices Authored and Potential combos alongside what it learns.
+To add or report one, use the **Combo** issue form (the GUI's Combos page
+opens it prefilled) or send a pull request that edits the JSON.
+`python -m ajbot.combodb check` validates the files; see `combos/README.md`
+for the notation.
+
+## Shared models
+
+Train page > **Get latest model** (or `python tools/get_model.py`) fetches
+the newest `ajbot-model-*.zip` from Releases, checks every file against its
+manifest and installs it. The model it replaces is kept in
+`models/replaced-<date>/`.
+
+To share a model: run `trainingelease_model.bat`. It packs `models/`
+into a zip, shows what it will publish and asks before uploading it as a
+`model-<date>` release (the newest 5 are kept). It signs in with your git
+login for GitHub, or `GH_TOKEN` if set. `--dry-run` only builds the zip.
 
 ## Machine settings
 

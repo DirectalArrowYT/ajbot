@@ -1,0 +1,61 @@
+{
+ "char": "Mirko",
+ "combos": [
+  {
+   "id": "mirko-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-64d1ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-f1965a",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-b8e964",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mirko-c4009e",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

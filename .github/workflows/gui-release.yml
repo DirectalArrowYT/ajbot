@@ -69,9 +69,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Releases that carry a game files zip are never removed.
+          # Releases that carry a game files zip or a model are never removed
+          # here (training/release_model.py prunes its own).
           gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-            --jq '.[] | select([.assets[].name | startswith("ajbot-gamefiles")] | any | not) | .tag_name' \
+            --jq '.[] | select([.assets[].name | startswith("ajbot-gamefiles") or startswith("ajbot-model")] | any | not) | select(.tag_name | startswith("model-") | not) | .tag_name' \
             | tail -n +6 | while read -r t; do
                 gh release delete "$t" --yes --cleanup-tag
               done

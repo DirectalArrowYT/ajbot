@@ -1,0 +1,69 @@
+{
+ "char": "Kaminari",
+ "combos": [
+  {
+   "id": "kaminari-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-46e9b1",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-3a13a2",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-415087",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-0d13a2",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-6a0926",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "kaminari-46555d",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > Jump > Dash > PU > Escape > Dash > Jump > Dash > Q1 > TQ1 > Dash > Jump > Dash > AA",
+   "source": "ml",
+   "damage": 0.461,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

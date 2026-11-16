@@ -1,0 +1,75 @@
+{
+ "char": "FatGum",
+ "combos": [
+  {
+   "id": "fatgum-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-5370cc",
+   "tier": "hypothetical",
+   "notation": "A > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-c8c727",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-690de4",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-a3a377",
+   "tier": "hypothetical",
+   "notation": "Rising > EA > EA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "fatgum-f85194",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

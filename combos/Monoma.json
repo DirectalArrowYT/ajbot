@@ -1,0 +1,68 @@
+{
+ "char": "Monoma",
+ "combos": [
+  {
+   "id": "monoma-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-64d1ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-7516db",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-e8beee",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-7ea270",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-f4ec02",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "monoma-9d84bc",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

@@ -1,0 +1,110 @@
+{
+ "char": "Dabi",
+ "combos": [
+  {
+   "id": "dabi-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-46e9b1",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-0106e2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-96857b",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-7ebaa5",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-0ad44f",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-c8c727",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-85aea3",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-c2e928",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-59959d",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dabi-d0c295",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+{
+ "char": "DLC1",
+ "combos": [
+  {
+   "id": "dlc1-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-bd093f",
+   "tier": "hypothetical",
+   "notation": "AAAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-6370dd",
+   "tier": "hypothetical",
+   "notation": "AAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-7516db",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-05f842",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dlc1-f4ec02",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "char": "Muscular",
+ "combos": [
+  {
+   "id": "muscular-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-4c2716",
+   "tier": "hypothetical",
+   "notation": "A > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-96857b",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-956d41",
+   "tier": "hypothetical",
+   "notation": "A > TQ2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-07b287",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "muscular-5ff521",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

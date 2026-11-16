@@ -1,0 +1,103 @@
+{
+ "char": "Koda",
+ "combos": [
+  {
+   "id": "koda-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-2e9fc8",
+   "tier": "hypothetical",
+   "notation": "UB > AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-7516db",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-206899",
+   "tier": "hypothetical",
+   "notation": "CA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-d560ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-138f44",
+   "tier": "hypothetical",
+   "notation": "Q2 > Q2 > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-f4ec02",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-6c51e0",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-532c60",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-9e05b3",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > Q2 > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-d5d248",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA > TQ1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "koda-8e5989",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2 > Q2 > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

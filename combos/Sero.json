@@ -1,0 +1,54 @@
+{
+ "char": "Sero",
+ "combos": [
+  {
+   "id": "sero-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-736bcf",
+   "tier": "hypothetical",
+   "notation": "CA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-aa78e6",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-7516db",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-8642d0",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-b46ff9",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "sero-e4a79b",
+   "tier": "hypothetical",
+   "notation": "AAA > CA > Q2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

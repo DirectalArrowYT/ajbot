@@ -1,0 +1,104 @@
+{
+ "char": "Nejire",
+ "combos": [
+  {
+   "id": "nejire-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-96857b",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-d366ee",
+   "tier": "hypothetical",
+   "notation": "PU > PU > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-7ab39f",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-0ad44f",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-af69ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-59959d",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-c93d27",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ2 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nejire-577fd2",
+   "tier": "hypothetical",
+   "notation": "Q1 > Q1 > Q1 > Dash > Q1 > Q1 > Jump > Dash > Q1 > Q1 > Jump > Q1 > Q1",
+   "source": "ml",
+   "damage": 0.416,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

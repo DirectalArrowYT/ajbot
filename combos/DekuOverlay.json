@@ -1,0 +1,41 @@
+{
+ "char": "DekuOverlay",
+ "combos": [
+  {
+   "id": "dekuoverlay-bd093f",
+   "tier": "hypothetical",
+   "notation": "AAAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekuoverlay-d6b4c5",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekuoverlay-d0b87b",
+   "tier": "hypothetical",
+   "notation": "AAAAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekuoverlay-b9f23b",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "dekuoverlay-12fa09",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2 > A > CA",
+   "source": "ml",
+   "damage": 0.377,
+   "notes": "Found in recordings: landed 2 time(s)."
+  }
+ ]
+}

@@ -49,6 +49,36 @@ impl App {
     fn ui_train_local(&mut self, ui: &mut egui::Ui) {
         let busy = self.runner.is_some();
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            theme::titled_card(ui, "Shared model", |ui| {
+                let stamp = std::fs::read_to_string(self.dir().join("models").join("model_release.json"))
+                    .ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok());
+                let have = stamp.as_ref().and_then(|v| v["tag"].as_str().map(String::from));
+                ui.label(RichText::new(
+                    "Trained models are published on the GitHub releases page. Get latest model \
+                     downloads the newest and installs it; yours is kept in models\\replaced-<time>\\ \
+                     and can be picked as Bot B to compare.")
+                    .color(MUTED));
+                ui.label(match &have {
+                    Some(t) => format!("Installed: {t}"),
+                    None if self.dir().join("models").join("policy.pkl").exists() =>
+                        "Installed: your own model (not from a release)".into(),
+                    None => "No model installed yet".into(),
+                });
+                ui.horizontal(|ui| {
+                    if ui.add_enabled(!busy, egui::Button::new(
+                        RichText::new("Get latest model").strong().color(egui::Color32::BLACK))
+                        .fill(theme::ORANGE)).clicked()
+                    {
+                        let j = self.py_job("get model", &["tools/get_model.py"]);
+                        self.run_jobs(vec![j]);
+                    }
+                    if ui.add_enabled(!busy, egui::Button::new("What is out there?")).clicked() {
+                        let j = self.py_job("model check", &["tools/get_model.py", "--check"]);
+                        self.run_jobs(vec![j]);
+                    }
+                });
+            });
+            ui.add_space(8.0);
             theme::titled_card(ui, "Retrain model", |ui| {
                 ui.label(RichText::new(
                     "Runs training\\retrain.bat: digests new recordings (runs\\ and botruns\\), mines \

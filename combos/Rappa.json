@@ -1,0 +1,26 @@
+{
+ "char": "Rappa",
+ "combos": [
+  {
+   "id": "rappa-bcb6ed",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "rappa-8463e1",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > Q1 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "rappa-148405",
+   "tier": "hypothetical",
+   "notation": "AAA > Q1 > Q1 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

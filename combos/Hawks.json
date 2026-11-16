@@ -1,0 +1,131 @@
+{
+ "char": "Hawks",
+ "combos": [
+  {
+   "id": "hawks-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-1aab15",
+   "tier": "hypothetical",
+   "notation": "AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-37d11f",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-5d8b07",
+   "tier": "hypothetical",
+   "notation": "AA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-736bcf",
+   "tier": "hypothetical",
+   "notation": "CA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-375029",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-dec9ec",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-3cdaf5",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-1fcb87",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-9a8ba6",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-729434",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-92f8f0",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-b3841d",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-a1d9fa",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-c5e6dc",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "hawks-a500cb",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

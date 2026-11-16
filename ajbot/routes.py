@@ -69,17 +69,22 @@ def load(path=ROUTES_PATH):
 
 
 def load_all(folder=None):
-    """Authored routes, then the ones the combo trainer landed (drill.py),
-    then the routes mined from human play (ajbot.routemine) that belong to
-    the model in `folder` - on a tie the earlier source wins. Without a folder, the active
-    data folder (ajbot.datadir)."""
-    from . import datadir
+    """Authored routes, then the combo library's authored and potential
+    combos (combos/, ajbot.combodb), then the ones the combo trainer landed
+    (drill.py), then the routes mined from human play (ajbot.routemine) that
+    belong to the model in `folder` - on a tie the earlier source wins.
+    Without a folder, the active data folder (ajbot.datadir)."""
+    from . import combodb, datadir
     data = load() or {"chars": {}}
+    try:
+        library = {"chars": combodb.routes_for_bot()}
+    except (OSError, ValueError):
+        library = None
     drilled = load(DRILLED_PATH)
     mined = load(datadir.path_in(folder, "mined_routes.json") if folder
                  else datadir.path("mined_routes.json"))
     chars = {c: list(v) for c, v in (data.get("chars") or {}).items()}
-    for extra in (drilled, mined):
+    for extra in (library, drilled, mined):
         for c, items in ((extra or {}).get("chars") or {}).items():
             have = {tuple(r.get("steps") or ()) for r in chars.get(c, ())}
             chars.setdefault(c, []).extend(r for r in items

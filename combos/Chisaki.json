@@ -1,0 +1,148 @@
+{
+ "char": "Chisaki",
+ "combos": [
+  {
+   "id": "chisaki-badaa8",
+   "tier": "hypothetical",
+   "notation": "AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-3fee43",
+   "tier": "hypothetical",
+   "notation": "AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-f23699",
+   "tier": "hypothetical",
+   "notation": "AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-2442ab",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-7ebaa5",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-375029",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-1dd938",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > CA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-3cb5de",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-c61add",
+   "tier": "hypothetical",
+   "notation": "TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-a59fd5",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-9c3b95",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-9a0971",
+   "tier": "hypothetical",
+   "notation": "UB > AA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-4212f2",
+   "tier": "hypothetical",
+   "notation": "UB > AAA > TQ1 > TQ1 > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "chisaki-ef75a8",
+   "tier": "hypothetical",
+   "notation": "AA > TQ1 > Jump > A > Q2 > AA > Q1",
+   "source": "ml",
+   "damage": 0.453,
+   "notes": "Found in recordings: landed 1 time(s)."
+  },
+  {
+   "id": "chisaki-3bcaa9",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > Jump > A > Q2 > Dash > AA > Q1",
+   "source": "ml",
+   "damage": 0.473,
+   "notes": "Found in recordings: landed 1 time(s)."
+  },
+  {
+   "id": "chisaki-b95f22",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ1 > Jump > A > Q2 > AA > Q1 > TQ1 > Jump > A > Q2 > Q1",
+   "source": "ml",
+   "damage": 0.61,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

@@ -458,6 +458,10 @@ struct App {
     preview_edit: Option<Instant>,
     saved: std::sync::Arc<std::sync::Mutex<Saved>>,
     saved_pick: Option<String>,
+    /// Combo library (combos/<char>.json): (char, file time, combos).
+    library: Option<(String, Option<std::time::SystemTime>, Vec<serde_json::Value>)>,
+    /// Library tier filter: "" = all, else "authored" / "potential" / "hypothetical".
+    library_tier: String,
     /// Combos page: list every character's saved combos, not just the picked one's.
     combo_all_chars: bool,
     /// Combos page: the saved combo whose Delete is waiting for a yes.
@@ -531,6 +535,8 @@ impl App {
             preview_edit: Some(Instant::now()),
             saved: Default::default(),
             saved_pick: None,
+            library: None,
+            library_tier: String::new(),
             combo_all_chars: false,
             combo_confirm_delete: None,
             setup: Default::default(),

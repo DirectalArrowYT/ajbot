@@ -1,0 +1,48 @@
+{
+ "char": "Nighteye",
+ "combos": [
+  {
+   "id": "nighteye-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nighteye-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nighteye-2989d4",
+   "tier": "hypothetical",
+   "notation": "AA > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nighteye-2b6f3e",
+   "tier": "hypothetical",
+   "notation": "AA > CA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nighteye-dec9ec",
+   "tier": "hypothetical",
+   "notation": "AA > TQ2 > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "nighteye-113dd6",
+   "tier": "hypothetical",
+   "notation": "CA > TQ2 > EA > A > CA > EA > A > CA > Q2 > A > CA > PU",
+   "source": "ml",
+   "damage": 0.457,
+   "notes": "Found in recordings: landed 1 time(s)."
+  }
+ ]
+}

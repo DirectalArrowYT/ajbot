@@ -1,0 +1,12 @@
+{
+ "char": "Tokoyami",
+ "combos": [
+  {
+   "id": "tokoyami-70c881",
+   "tier": "hypothetical",
+   "notation": "AAAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

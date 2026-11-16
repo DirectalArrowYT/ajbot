@@ -231,8 +231,8 @@ def run_checks():
     pol = Path("models/policy.pkl")
     add("models", "Bot", "Trained model (models/policy.pkl)", pol.exists(),
         f"{pol.stat().st_size // 1024 // 1024} MB" if pol.exists()
-        else "download it from the releases page into models/",
-        None if pol.exists() else "releases", "Open releases")
+        else "download the newest shared model",
+        None if pol.exists() else "model", "Download model")
     return checks
 
 
@@ -386,6 +386,8 @@ def fix(fid, path=None):
         webbrowser.open(VIGEM_URL)
         say("opened the ViGEmBus releases page - install the .exe/.msi, then Check again")
         return
+    if fid == "model":
+        sys.exit(subprocess.call([sys.executable, "tools/get_model.py"]))
     if fid == "releases":
         webbrowser.open(RELEASES_URL)
         say("opened the releases page")

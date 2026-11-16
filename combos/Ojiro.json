@@ -1,0 +1,89 @@
+{
+ "char": "Ojiro",
+ "combos": [
+  {
+   "id": "ojiro-52d621",
+   "tier": "hypothetical",
+   "notation": "AAA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-9c06d2",
+   "tier": "hypothetical",
+   "notation": "AAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-64d1ad",
+   "tier": "hypothetical",
+   "notation": "AAA > TQ2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-d6b4c5",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-cf3505",
+   "tier": "hypothetical",
+   "notation": "AAAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-f912da",
+   "tier": "hypothetical",
+   "notation": "AAAAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-e1abdd",
+   "tier": "hypothetical",
+   "notation": "UB > AAAAA > TQ1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-e0da51",
+   "tier": "hypothetical",
+   "notation": "UB > AAAAA > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-786057",
+   "tier": "hypothetical",
+   "notation": "Q1 > Q1 > Q1 > Q1 > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-f61f44",
+   "tier": "hypothetical",
+   "notation": "AAAA > Q1 > Q1 > Q1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-74a38e",
+   "tier": "hypothetical",
+   "notation": "AAAAA > Q1 > Q1 > Q1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "ojiro-0186c7",
+   "tier": "hypothetical",
+   "notation": "UB > AAAAA > Q1 > Q1 > Q1 > Q1",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}

@@ -1,0 +1,124 @@
+{
+ "char": "Mineta",
+ "combos": [
+  {
+   "id": "mineta-7e240d",
+   "tier": "hypothetical",
+   "notation": "AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-2a34da",
+   "tier": "hypothetical",
+   "notation": "AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-f0f8bf",
+   "tier": "hypothetical",
+   "notation": "UB > AAA",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-8ab0d5",
+   "tier": "hypothetical",
+   "notation": "CA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-c47afd",
+   "tier": "hypothetical",
+   "notation": "Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-51d524",
+   "tier": "hypothetical",
+   "notation": "UB > AA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-e41273",
+   "tier": "hypothetical",
+   "notation": "A > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-7e0f8e",
+   "tier": "hypothetical",
+   "notation": "AA > CA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-949f08",
+   "tier": "hypothetical",
+   "notation": "AA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-b017e1",
+   "tier": "hypothetical",
+   "notation": "CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-4cd060",
+   "tier": "hypothetical",
+   "notation": "A > CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-2dcdaa",
+   "tier": "hypothetical",
+   "notation": "AA > CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-d32df9",
+   "tier": "hypothetical",
+   "notation": "CA > CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-a2c707",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > CA > PU",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-32d9d2",
+   "tier": "hypothetical",
+   "notation": "UB > AA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-9c6533",
+   "tier": "hypothetical",
+   "notation": "AA > CA > CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  },
+  {
+   "id": "mineta-fd7a52",
+   "tier": "hypothetical",
+   "notation": "UB > AA > CA > CA > Q2 > Q2 > Q2",
+   "source": "game-cpu",
+   "notes": "From the game's own CPU combo list."
+  }
+ ]
+}
