@@ -11,7 +11,7 @@ Both players are set up as humans; endless.py --boot starts from the menu.
 import os, sys  # noqa: E401
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # for _root, also under python -P
 import _root  # noqa: F401,E402  (repo root + script folders on sys.path)
-import argparse, json, os, random, struct, subprocess, sys
+import argparse, json, os, random, struct, subprocess, sys, time
 from pathlib import Path
 import socket
 
@@ -299,8 +299,32 @@ def set_speed(n):
 HUB = "/Game/Stage/st_MS01/st_MS01"  # main-menu hub the title's Game Start opens
 
 
+def save_loaded(timeout=120.0):
+    """True once this game session has loaded its save (or no log to tell).
+    Travelling before that is what wiped a player's save: the game saves on
+    level travel, and an unloaded SaveData is the fresh default one."""
+    import endless as E
+    path = E.game_log()
+    if not path:
+        return True
+    t0 = time.time()
+    while True:
+        try:
+            if E.SAVE_LOADED in path.read_text(errors="replace"):
+                return True
+        except OSError:
+            pass
+        if time.time() - t0 > timeout:
+            return False
+        time.sleep(1)
+
+
 def travel(path, pc=None):
-    """Native FCommonStatics::OpenLevel through ajhook. Returns its reply."""
+    """Native FCommonStatics::OpenLevel through ajhook. Returns its reply.
+    Refuses until the game has loaded its save (see save_loaded)."""
+    if not save_loaded():
+        raise RuntimeError("the game has not loaded its save yet - not starting a match "
+                           "(travelling now would overwrite the save with a blank one)")
     if pc is None:
         pc = addrs()[1]
     r = call(f"L{pc:#x} {path}")

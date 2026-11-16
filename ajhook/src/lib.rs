@@ -696,6 +696,9 @@ unsafe fn pipe_write_msg(h: HANDLE, s: &str) {
 ///   N<n>     number of virtual XInput pads (slots 0..n)
 ///   F        frame pump status: "frames=<n> game_tid=<tid> lua=<bool>"
 ///   A<size>  zeroed block from the game's allocator: "0x<addr>"
+///   U<obj> <ufunction> [hex parms]  call a UFunction on obj through
+///            UObject::ProcessEvent on the game thread; replies with the parms
+///            buffer as hex afterwards (return value and out params included)
 fn handle(msg: &[u8]) -> String {
     let (op, rest) = match msg.split_first() {
         Some((op, rest)) => (*op, String::from_utf8_lossy(rest).into_owned()),
@@ -898,6 +901,26 @@ fn handle(msg: &[u8]) -> String {
                 format!("{:#x}", p as usize)
             }
         }
+        b'U' => {
+            // UE4SS's "ProcessEvent" in this build is a folded `ret 0` stub, so
+            // every function call made through UE4SS silently does nothing.
+            // The real one is UObject vtable slot 78 (RVA_PROCESS_EVENT).
+            let mut it = rest.split_whitespace();
+            let num = |t: Option<&str>| t.and_then(|t| usize::from_str_radix(t.trim_start_matches("0x"), 16).ok());
+            let (Some(obj), Some(func)) = (num(it.next()), num(it.next())) else {
+                return "!usage: U<obj> <ufunction> [hex parms]".into();
+            };
+            let hex = it.next().unwrap_or("");
+            let bytes: Option<Vec<u8>> = (0..hex.len())
+                .step_by(2)
+                .map(|i| hex.get(i..i + 2).and_then(|h| u8::from_str_radix(h, 16).ok()))
+                .collect();
+            let Some(bytes) = bytes else { return "!bad parms hex".into() };
+            if obj < 0x10000 || func < 0x10000 || bytes.len() > 4096 {
+                return "!bad args".into();
+            }
+            run_native(Box::new(move || unsafe { call_ufunction(obj, func, &bytes) }))
+        }
         b'G' => xinput_slots(),
         b'Z' | b'N' => lockstep::command(op, &rest),
         b'V' => vhook::command(&rest),
@@ -1068,6 +1091,31 @@ fn install_frame_pump() {
 const RVA_FNAME_CTOR: usize = 0x120f780; // FName::FName(const TCHAR*, EFindName)
 const RVA_GMALLOC: usize = 0xa1e3820; // FMalloc* GMalloc
 const RVA_COMMON_OPEN_LEVEL: usize = 0x4914a90; // FCommonStatics::OpenLevel
+const RVA_PROCESS_EVENT: usize = 0x141d850; // UObject::ProcessEvent (vtable slot 78)
+
+/// Game thread only. The parms buffer is at least the UFunction's ParmsSize
+/// (u16 at +0xb6) and 16-byte aligned; the caller's bytes fill its start.
+unsafe fn call_ufunction(obj: usize, func: usize, parms: &[u8]) -> String {
+    let readable = |a: usize, n: usize| {
+        let mut b = vec![0u8; n];
+        let mut got = 0usize;
+        windows_sys::Win32::System::Diagnostics::Debug::ReadProcessMemory(
+            windows_sys::Win32::System::Threading::GetCurrentProcess(),
+            a as *const c_void, b.as_mut_ptr() as *mut c_void, n, &mut got) != 0 && got == n
+    };
+    if !readable(obj, 0x30) || !readable(func, 0xc0) {
+        return "!object or function not readable".into();
+    }
+    let size = (*((func + 0xb6) as *const u16) as usize).max(parms.len());
+    let mut buf = vec![0u128; size.div_ceil(16).max(1)];
+    std::ptr::copy_nonoverlapping(parms.as_ptr(), buf.as_mut_ptr() as *mut u8, parms.len());
+    let base = GetModuleHandleA(std::ptr::null()) as usize;
+    type Pe = unsafe extern "system" fn(usize, usize, *mut c_void);
+    let pe: Pe = std::mem::transmute(base + RVA_PROCESS_EVENT);
+    pe(obj, func, buf.as_mut_ptr() as *mut c_void);
+    std::slice::from_raw_parts(buf.as_ptr() as *const u8, size)
+        .iter().map(|b| format!("{b:02x}")).collect()
+}
 
 #[repr(C)]
 struct FStr {

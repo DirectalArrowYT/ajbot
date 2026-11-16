@@ -8,8 +8,6 @@ This repository is code only: no recordings, trained models or game assets.
 You need your own copy of the game. The GUI, the game-side files and (when
 shared) trained models are on the Releases page.
 
-[Foot note: This project was built with the help with claude]
-
 ## Setup (Windows)
 
 1. Get this folder: `git clone https://github.com/DirectalArrowYT/ajbot`
@@ -98,8 +96,7 @@ The GUI releases itself: every push to `main` that changes `gui/` makes
 GitHub Actions build `ajbot-gui.exe` and publish it as a new release
 (`.github/workflows/gui-release.yml`; the newest 5 are kept).
 
-The game files only change now and then: run `tools
-elease_gamefiles.bat`.
+The game files only change now and then: run `toolselease_gamefiles.bat`.
 It builds `ajbot-gamefiles-<ver>.zip` (`tools/make_release.py`: the ASI
 loader and UE4SS from your game install, this repo's UE4SS mods and a fresh
 `ajhook.asi`), shows what is in it and asks before publishing it as a

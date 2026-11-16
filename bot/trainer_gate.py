@@ -8,6 +8,11 @@ keys the game's own options assign to each action. The bot then presses it
 on that exact frame: the person goes at their own pace, and between prompts
 the combo plays in real time. Back on the pad or Backspace quits.
 
+The input itself is drawn inside the game (server/uewidget.Prompt: the game's
+own key icons for the current device, on the title menu bar); the overlay
+window keeps the step chain and results, and draws the input too if the
+in-game prompt cannot be built.
+
 While it runs the game gets no keyboard messages (ajhook Zkeys mute), so a
 key pressed for a prompt is not played a second time by the keyboard player.
 """
@@ -49,6 +54,11 @@ PAD_INPUT = {"Gamepad_FaceButton_Bottom": ("btn", 0x1000), "Gamepad_FaceButton_R
              "Gamepad_LeftTrigger": ("lt", 0), "Gamepad_RightTrigger": ("rt", 0),
              "Gamepad_LeftStick_Up": ("y", 1), "Gamepad_LeftStick_Down": ("y", -1),
              "Gamepad_LeftStick_Left": ("x", -1), "Gamepad_LeftStick_Right": ("x", 1)}
+
+# EConfigChangeableAction -> the game's text-markup action ({Melee,} draws
+# that action's key icon), checked against the icons the game draws.
+ACTION_MARKUP = {5: "Melee", 6: "Unique1", 7: "Unique2", 8: "Jump", 9: "Dash", 10: "Guard",
+                 11: "Sidekick1", 12: "Sidekick2", 23: "RStickPush"}
 
 READ_BINDINGS = '''
 local s = FindFirstOf("SaveData")
@@ -130,6 +140,9 @@ class Keyboard:
 
     def __init__(self):
         kb, pad, self.live = read_bindings()
+        # what the bot's pad presses -> the game's markup for that action
+        self.markup = {PAD_INPUT[k]: "{%s,}" % ACTION_MARKUP[a]
+                       for a, k in pad.items() if a in ACTION_MARKUP and k in PAD_INPUT}
         self.keys = []                  # (vk, kind, value)
         self.label = {}                 # ("btn", bit) / ("lt",) / ("x", 1) ... -> key label
         for action, pkey in pad.items():
@@ -220,6 +233,41 @@ class HumanGate:
             print("[trainer] this ajhook.asi cannot hold back the keyboard - keys pressed for a "
                   "prompt may also reach the game", flush=True)
         self.ov = Overlay()
+        self.ui = None
+        try:
+            import uewidget
+            self.ui = uewidget.Prompt()
+        except Exception as e:  # noqa: BLE001 - any failure: the overlay draws prompts
+            print(f"[trainer] in-game prompt unavailable ({e}) - using the overlay", flush=True)
+
+    def _ui(self, markup=None):
+        """Show (or with None hide) the in-game prompt; False when it cannot
+        be drawn, after which the overlay draws prompts."""
+        if not self.ui:
+            return False
+        try:
+            if markup is None:
+                self.ui.hide()
+            else:
+                self.ui.show(markup)
+            return True
+        except Exception as e:  # noqa: BLE001
+            print(f"[trainer] in-game prompt failed ({e}) - using the overlay", flush=True)
+            self.ui = None
+            return False
+
+    def markup(self, k, buttons, stick, trig):
+        """The game's markup for step k's input, e.g. '{MoveUp,} → + {Melee,}  5A'."""
+        parts = []
+        if arrow(stick):
+            parts.append("{MoveUp,} " + arrow(stick))
+        for bit, name in BUTTON_BITS:
+            if buttons & bit:
+                parts.append(self.kb.markup.get(("btn", bit), name))
+        if trig:
+            left = trig == "left"
+            parts.append(self.kb.markup.get(("lt", 0) if left else ("rt", 0), "LT" if left else "RT"))
+        return " + ".join(parts) + "   " + self.chain[k]
 
     def _pads(self):
         """(buttons, lt, rt, stick x, stick y) over every real pad, all zero
@@ -265,6 +313,7 @@ class HumanGate:
         self.ov.show(chain=self.chain, k=k, note=self.note())
 
     def result(self, ok, r):
+        self._ui(None)
         if ok:
             self.ov.show(chain=self.chain, k=len(self.chain), banner="LANDED", good=True,
                          note=self.note())
@@ -281,8 +330,13 @@ class HumanGate:
             need |= int(b)
         want = arrow(stick)
 
+        drawn = self._ui(self.markup(k, need, stick if want else None, trig))
+
         def prompt(wrong=None):
-            if self.keys_mode():
+            if drawn:
+                self.ov.show(chain=self.chain, k=k, wrong=wrong,
+                             note=KEY_NOTE if self.keys_mode() else NOTE)
+            elif self.keys_mode():
                 self.ov.show(chain=self.chain, k=k, prompt=self.chain[k], keys=True,
                              buttons=self.kb.stick_keys(stick) + self.kb.names(need, trig),
                              wrong=wrong, note=KEY_NOTE)
@@ -337,6 +391,7 @@ class HumanGate:
             time.sleep(0.004)
 
     def close(self):
+        self._ui(None)
         try:
             self.g.hook._send("Z", "keys pass")
         except HookError:
