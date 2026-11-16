@@ -137,34 +137,47 @@ def set_char(blk, cid, costume):
 
 
 CONTROL_OFF = 0x538   # player entry: TMap<character id, ComboModeSetting> - the
-                      # control-mode screen's choice per character. Element
-                      # (12 bytes): id, ComboMode (0 Normal, 1 Manual), auto
-                      # change combo, auto Plus Ultra, then the set's hash-next
-                      # and hash-index ints. Sparse array header: data ptr,
-                      # num, max, then the allocation bits inline at +0x10. A
-                      # menu-free start leaves Normal with both auto on, and on
-                      # Normal the game turns repeated A presses into its own
-                      # auto combo.
+                      # control-mode choice per character, read when a battle
+                      # loads. Element (12 bytes): id, ComboMode (0 Normal,
+                      # 1 Manual), auto change combo, auto Plus Ultra, then the
+                      # set's hash-next and hash-index ints. Header (0x50):
+                      # +0 data ptr, num, max; +0x10 allocation bits inline
+                      # (128), +0x20 their heap ptr, +0x28 NumBits, MaxBits;
+                      # +0x30 first free, free count; +0x38 inline hash bucket,
+                      # +0x40 hash heap ptr, +0x48 hash size. A character with
+                      # no element plays Normal with both auto on, where the
+                      # game turns repeated A presses into its own auto combo -
+                      # and only the menus add elements, so a fresh game session
+                      # has none: set_manual adds them.
 MAP_ELEM = 12
 MANUAL = bytes([1, 0, 0])
 
 
+def alloc(n):
+    """n zeroed bytes from the game's own allocator (ajhook A), so the game
+    can later grow or free what the bot built."""
+    r = call(f"A{n}")
+    if not r.startswith("0x"):
+        raise RuntimeError(f"alloc {n}: {r} (install the current ajhook.asi)")
+    return int(r, 16)
+
+
 def set_manual(players, p, team):
     """Control mode Manual (auto change combo and auto Plus Ultra off) for
-    player p's characters that the map already holds. Only the three mode
-    bytes of an element are written - never the hash ints (overwriting those
-    crashed the game on load). The game reads the map when a battle loads (not
-    mid-battle) and adds an element for a character the first time it fights,
-    so a character missing here gets one during the load: set it then and load
-    again. Returns (ids of team now on Manual, ids this call changed)."""
+    player p's team. Elements already there get their three mode bytes
+    written (never the hash ints - overwriting those crashed the game on
+    load); a character with no element gets one, added the way TSet::Add
+    would (key hash = the id byte). The game reads the map when a battle
+    loads, so call it before the load. Returns (ids of team now on Manual,
+    ids this call changed or added)."""
     base = players + p * ENTRY + CONTROL_OFF
-    hdr = rd(base, 0x30)
+    hdr = bytearray(rd(base, 0x50))
     ptr, num, mx = struct.unpack_from("<Qii", hdr)
     bits_heap, = struct.unpack_from("<Q", hdr, 0x20)
-    if not ptr or not 0 <= num <= mx <= 128:
+    if not 0 <= num <= mx <= 4096 or (num and not ptr):
         return set(), set()
     bits = int.from_bytes(rd(bits_heap, 16) if bits_heap else hdr[0x10:0x20], "little")
-    data = rd(ptr, num * MAP_ELEM)
+    data = bytearray(rd(ptr, num * MAP_ELEM)) if num else bytearray()
     done, changed = set(), set()
     for i in range(num):
         e = data[i * MAP_ELEM:i * MAP_ELEM + 4]
@@ -173,6 +186,43 @@ def set_manual(players, p, team):
                 wr(ptr + i * MAP_ELEM + 1, MANUAL)
                 changed.add(e[0])
             done.add(e[0])
+    add = [c for c in dict.fromkeys(team) if c not in done]
+    free_count, = struct.unpack_from("<i", hdr, 0x34)
+    hash_heap, = struct.unpack_from("<Q", hdr, 0x40)
+    hsize, = struct.unpack_from("<i", hdr, 0x48)
+    if not add or bits_heap or free_count or num + len(add) > 128 or hsize & (hsize - 1):
+        return done, changed            # holes or heap bits: leave it to the menus
+    if num + len(add) > mx:
+        mx = max(8, num + len(add))
+        new = alloc(mx * MAP_ELEM)
+        if num:
+            wr(new, bytes(data))        # the old block is left to leak (bytes)
+        ptr = new
+    if hsize == 0:
+        hsize = 1
+        struct.pack_into("<i", hdr, 0x38, -1)
+    buckets = hash_heap or base + 0x38
+    heads = list(struct.unpack(f"<{hsize}i", bytes(hdr[0x38:0x3C]) if not hash_heap
+                               else rd(hash_heap, 4 * hsize)))
+    for c in add:
+        i = num
+        b = c & (hsize - 1)
+        wr(ptr + i * MAP_ELEM, bytes([c]) + MANUAL + struct.pack("<ii", heads[b], b))
+        heads[b] = i
+        bits |= 1 << i
+        num += 1
+        done.add(c)
+        changed.add(c)
+    if hash_heap:
+        wr(hash_heap, struct.pack(f"<{hsize}i", *heads))
+    else:
+        struct.pack_into("<i", hdr, 0x38, heads[0])
+    struct.pack_into("<Qii", hdr, 0, ptr, num, mx)
+    hdr[0x10:0x20] = bits.to_bytes(16, "little")
+    struct.pack_into("<i", hdr, 0x28, num)
+    struct.pack_into("<i", hdr, 0x48, hsize)
+    wr(base + 0x10, bytes(hdr[0x10:0x50]))   # bits and hash first, then the count
+    wr(base, bytes(hdr[:0x10]))
     return done, changed
 
 
@@ -295,7 +345,7 @@ def start(p1=None, p2=None, stage=None, all_=False, log=print, mirror=False, nam
         for i, cid in enumerate(team):
             set_char(players + p * ENTRY + i * BLOCK, cid, costume(cid))
         if manual and set(team) - set_manual(players, p, team)[0]:
-            log(f"p{p + 1}: not every character has a control-mode entry yet")
+            log(f"p{p + 1}: could not put every character on control mode Manual")
     prep_setup(work, players, stage)
     for p, team in enumerate(teams):
         log(f"p{p + 1}: " + ", ".join(f"{NAME.get(c, '?')}({c}) {costume(c)}" for c in team))

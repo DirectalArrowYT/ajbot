@@ -694,6 +694,7 @@ unsafe fn pipe_write_msg(h: HANDLE, s: &str) {
 ///   Z<n> <pad>..  lockstep: set virtual pads, run n frames, park (see lockstep.rs)
 ///   N<n>     number of virtual XInput pads (slots 0..n)
 ///   F        frame pump status: "frames=<n> game_tid=<tid> lua=<bool>"
+///   A<size>  zeroed block from the game's allocator: "0x<addr>"
 fn handle(msg: &[u8]) -> String {
     let (op, rest) = match msg.split_first() {
         Some((op, rest)) => (*op, String::from_utf8_lossy(rest).into_owned()),
@@ -872,6 +873,30 @@ fn handle(msg: &[u8]) -> String {
             };
             run_native(Box::new(move || unsafe { open_level(ctx, &path) }))
         }
+        b'A' => {
+            // A<size>: zeroed memory from the game's own allocator (GMalloc,
+            // FMallocBinned2; Malloc is vtable slot 5), so a container the
+            // bot builds inside a native struct can later be grown or freed by
+            // the game - the control-mode map of a fresh game session is empty
+            // until the menus fill it.
+            let Some(n) = rest.trim().parse::<usize>().ok().filter(|n| *n > 0 && *n <= 65536) else {
+                return "!usage: A<size>".into();
+            };
+            unsafe {
+                let gm = *((GetModuleHandleA(std::ptr::null()) as usize + RVA_GMALLOC) as *const usize);
+                if gm == 0 {
+                    return "!no GMalloc".into();
+                }
+                type Malloc = unsafe extern "system" fn(usize, usize, u32) -> *mut c_void;
+                let malloc: Malloc = std::mem::transmute(*(*(gm as *const *const usize)).add(5));
+                let p = malloc(gm, n, 16);
+                if p.is_null() {
+                    return "!malloc failed".into();
+                }
+                std::ptr::write_bytes(p as *mut u8, 0, n);
+                format!("{:#x}", p as usize)
+            }
+        }
         b'G' => xinput_slots(),
         b'Z' | b'N' => lockstep::command(op, &rest),
         b'V' => vhook::command(&rest),
@@ -1027,6 +1052,7 @@ fn install_frame_pump() {
 
 // AJGAME.exe RVAs (image base 0x140000000). FName ctor from UE4SS's scan.
 const RVA_FNAME_CTOR: usize = 0x120f780; // FName::FName(const TCHAR*, EFindName)
+const RVA_GMALLOC: usize = 0xa1e3820; // FMalloc* GMalloc
 const RVA_COMMON_OPEN_LEVEL: usize = 0x4914a90; // FCommonStatics::OpenLevel
 
 #[repr(C)]

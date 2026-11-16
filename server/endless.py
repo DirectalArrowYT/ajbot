@@ -235,19 +235,8 @@ def go_hub(timeout):
     return where() == "hub"
 
 
-def begin(a):
-    """Start a match and wait for it to come up. Returns (teams, stage) or None."""
-    try:
-        ids = lambda t: [int(x) for x in t.split(",")] if t else None
-        # Read every match: the league swaps in a new challenger (and its
-        # routes) between matches.
-        names = nm.pool_from(a.pool_from) if a.pool_from else None
-        teams, stage = nm.start(ids(a.p1), ids(a.p2), all_=a.all, log=log, mirror=a.mirror,
-                                names=names,
-                                stage=None if a.stage == "random" else a.stage)
-    except (RuntimeError, OSError) as e:
-        log(f"next match failed: {e}")
-        return None
+def _come_up(a):
+    """Wait for a started match to reach the battle, then set speed."""
     t0 = time.time()
     time.sleep(5)
     while not (where() == "stage" and in_battle()):
@@ -258,6 +247,44 @@ def begin(a):
             nm.set_speed(a.speed)  # reaches the new level's WorldSettings once it is up
         time.sleep(2)
     time.sleep(2)
+
+
+def begin(a):
+    """Start a match and wait for it to come up. Returns (teams, stage) or None.
+    Every character plays on control mode Manual (auto change combo and auto
+    Plus Ultra off) unless --auto-combo: the menu-free start would leave the
+    game's default Normal, where it turns mashed A presses into its own
+    combo. A character's first match in this game session only gets its
+    control-mode entry during the load, so that match is started once more
+    with the entry set."""
+    manual = not a.auto_combo
+    try:
+        ids = lambda t: [int(x) for x in t.split(",")] if t else None
+        # Read every match: the league swaps in a new challenger (and its
+        # routes) between matches.
+        names = nm.pool_from(a.pool_from) if a.pool_from else None
+        teams, stage = nm.start(ids(a.p1), ids(a.p2), all_=a.all, log=log, mirror=a.mirror,
+                                names=names, manual=manual,
+                                stage=None if a.stage == "random" else a.stage)
+    except (RuntimeError, OSError) as e:
+        log(f"next match failed: {e}")
+        return None
+    _come_up(a)
+    if manual:
+        try:
+            changed, missing = nm.set_manual_all(teams)
+            if changed:
+                log("control mode Manual set for "
+                    + ", ".join(nm.NAME.get(c, str(c)) for c in sorted(changed))
+                    + " - starting the match again")
+                nm.start(teams[0], teams[1], stage=stage, log=log, manual=True)
+                _come_up(a)
+                changed, missing = nm.set_manual_all(teams)
+            if changed or missing:
+                log("warning: auto combo may stay on for "
+                    + ", ".join(nm.NAME.get(c, str(c)) for c in sorted(changed | missing)))
+        except (RuntimeError, OSError) as e:
+            log(f"control mode check failed: {e}")
     if a.speed != 1 and not nm.set_speed(a.speed):
         log(f"could not set speed x{a.speed:g}")
     if not nm.set_free_mode():
@@ -279,6 +306,9 @@ def main():
     ap.add_argument("--stage", default=GYM,
                     help=f"stage for every match (default {GYM}, Gymnasium Gamma); "
                          f"'random' = any free-battle stage")
+    ap.add_argument("--auto-combo", action="store_true",
+                    help="leave control mode on the game's default Normal (auto change combo "
+                         "and auto Plus Ultra on) instead of Manual")
     ap.add_argument("--poll", type=float, default=2.0, help="seconds between end checks")
     ap.add_argument("--post", type=float, default=4.0,
                     help="seconds on the result screen before the next match")
