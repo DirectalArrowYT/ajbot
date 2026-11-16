@@ -77,7 +77,8 @@ the newest `ajbot-model-*.zip` from Releases, checks every file against its
 manifest and installs it. The model it replaces is kept in
 `models/replaced-<date>/`.
 
-To share a model: run `trainingelease_model.bat`. It packs `models/`
+To share a model: run `training
+elease_model.bat`. It packs `models/`
 into a zip, shows what it will publish and asks before uploading it as a
 `model-<date>` release (the newest 5 are kept). It signs in with your git
 login for GitHub, or `GH_TOKEN` if set. `--dry-run` only builds the zip.
@@ -95,7 +96,10 @@ The GUI releases itself: every push to `main` that changes `gui/` makes
 GitHub Actions build `ajbot-gui.exe` and publish it as a new release
 (`.github/workflows/gui-release.yml`; the newest 5 are kept).
 
-The game files only change now and then: `python tools/make_release.py`
-builds `ajbot-gamefiles-<ver>.zip` into `dist/`. Attach it to a release by
-hand. The updater finds the newest release that has one, so later GUI
-releases don't need to carry it.
+The game files only change now and then: run `toolselease_gamefiles.bat`.
+It builds `ajbot-gamefiles-<ver>.zip` (`tools/make_release.py`: the ASI
+loader and UE4SS from your game install, this repo's UE4SS mods and a fresh
+`ajhook.asi`), shows what is in it and asks before publishing it as a
+`gamefiles-<ver>` release (the newest 3 are kept). Setup and Update now
+fetch the newest one, so GUI releases don't need to carry it.
+`--dry-run` only builds the zip.
