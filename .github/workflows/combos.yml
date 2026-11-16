@@ -8,12 +8,14 @@ on:
       - "combos/**"
       - "ajbot/notation.py"
       - "ajbot/combodb.py"
+      - ".github/workflows/combos.yml"
   push:
     branches: [main]
     paths:
       - "combos/**"
       - "ajbot/notation.py"
       - "ajbot/combodb.py"
+      - ".github/workflows/combos.yml"
   workflow_dispatch:
 
 permissions:
