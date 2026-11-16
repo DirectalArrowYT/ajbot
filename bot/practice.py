@@ -123,6 +123,7 @@ class Game:
 
     def __init__(self, a, route):
         self.trace = None             # [frame, act, cmd, enemy act, dist, enemy hp] per view
+        self.gate = None              # trainer_gate.HumanGate (--trainer)
         self.a = a
         self.route = route
         ids = {n: i for i, n, _ in nm.MENU}
@@ -753,6 +754,9 @@ def attempt(g, route, adj, lat, a):
                 tgt = steps[k]["tag"]
                 trig = g.tag_side.setdefault(
                     tgt, A.TAG_SIDES[g.mine.index(tgt) - 1] if tgt in g.mine[1:] else "left")
+                if g.gate and not g.gate.wait(k, (), NEUTRAL, trig):
+                    fail_at, why, trig = k, "quit", None
+                    break
                 g.pad.trigger(trig, 1.0)
                 release_at = f + max(a.hold, 5)
                 drift = None
@@ -761,6 +765,9 @@ def attempt(g, route, adj, lat, a):
                 g.step(1)
                 continue
             buttons, stick = plan(steps[k], me, en)
+            if g.gate and not g.gate.wait(k, buttons, stick, None):
+                fail_at, why = k, "quit"
+                break
             drift = steps[k].get("hold")
             g.pad.stick(stick)
             g.pad.hold(*buttons)
@@ -898,6 +905,10 @@ def main():
                     "(AAA > Q1 > Dodge Cancel > ...; see ajbot/notation.py)")
     ap.add_argument("--route-json", help="a saved route given as JSON (the GUI passes the "
                     "one picked, so it plays on any machine's game)")
+    ap.add_argument("--trainer", action="store_true",
+                    help="combo trainer for a person: the game holds before every step, an "
+                         "overlay on the game window shows the input, and it goes on once you "
+                         "press it on your controller (Back quits). Real time, nothing saved")
     ap.add_argument("--watch", type=int, default=0, metavar="N",
                     help="just play the saved timing N times to watch it: nothing is "
                          "tuned or saved")
@@ -1011,8 +1022,17 @@ def main():
     want = a.start_dist or route.get("start_dist") or near
     want = max(want, 120.0)
 
+    if a.trainer:
+        a.watch = a.watch or 10 ** 6
+        a.speed = 1
     g = Game(a, route)
     sampler.install(g.hook, every_pumps=1)
+    if a.trainer:
+        try:
+            from trainer_gate import HumanGate
+            g.gate = HumanGate(g, route)
+        except (OSError, RuntimeError, ImportError) as e:
+            sys.exit(f"trainer: {e}")
     if not g.restart() and not relaunch(a, g):
         sys.exit("could not start the practice match")
 
@@ -1087,6 +1107,11 @@ def main():
             if a.watch:
                 ok = landed(r, route)
                 total_landed += ok
+                if g.gate:
+                    if g.gate.quit:
+                        log("quit from the pad")
+                        break
+                    g.gate.result(ok, r)
                 tag = "LAND" if ok else f"fail@{r['fail_at']}"
                 log(f"watch {tries}/{a.watch} {tag:<8} {r['reached']:2d}/{n} steps  "
                     f"hits {r['hits']:2d}  dmg {r['damage']:.3f}  {r.get('why') or ''}")
@@ -1143,6 +1168,8 @@ def main():
     finally:
         if g.link:
             g.link.release()
+        if g.gate:
+            g.gate.close()
         if a.watch:
             log(f"watched {tries} plays, landed {total_landed}")
         else:

@@ -327,6 +327,34 @@ pub unsafe fn on_pump(service: unsafe fn(), log: fn(&str)) {
     cv.notify_all();
 }
 
+/// The real controllers, read from inside the game (so a pad that Steam
+/// Input shows only to the game counts): "<slot>:<24 hex>" per connected
+/// slot of the real XInputGetState, "-" for none. Works while the gate holds
+/// the game frozen - the combo trainer waits on a human's press that way.
+fn real_states() -> String {
+    let f = REAL_GET.load(Ordering::Relaxed);
+    if f == 0 {
+        return "!xinput hook not installed".into();
+    }
+    let mut out = Vec::new();
+    for idx in 0..4u32 {
+        let mut st = XState { packet: 0, pad: Gamepad::default() };
+        if unsafe { std::mem::transmute::<usize, GetStateFn>(f)(idx, &mut st) } == 0 {
+            let g = st.pad;
+            let mut b = Vec::with_capacity(12);
+            b.extend_from_slice(&g.buttons.to_le_bytes());
+            b.push(g.lt);
+            b.push(g.rt);
+            for v in [g.lx, g.ly, g.rx, g.ry] {
+                b.extend_from_slice(&v.to_le_bytes());
+            }
+            out.push(format!("{idx}:{}", b.iter().map(|x| format!("{x:02x}")).collect::<String>()));
+        }
+    }
+    if out.is_empty() { "-".into() } else { out.join(" ") }
+}
+
+/// `Zreal`                  the real controllers' states (see real_states)
 /// `Z<n> [pad0 [pad1 ..]]`  set pads, run n frames, park; "frame=<f>"
 /// `Zoff`                   release the gate (game runs freely again)
 /// `Zset pad0 [pad1 ..]`    set pads without touching the gate
@@ -391,6 +419,9 @@ pub fn command(op: u8, rest: &str) -> String {
             Ok(()) => "set".into(),
             Err(e) => e,
         };
+    }
+    if first == "real" {
+        return real_states();
     }
     if first == "pad" {
         let (Some(i), Some(hex)) = (pads_tok.first().and_then(|s| s.parse::<usize>().ok()), pads_tok.get(1)) else {
