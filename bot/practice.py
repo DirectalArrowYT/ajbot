@@ -160,12 +160,15 @@ class Game:
         if self.link:
             self.link.release()
             self.link = None
-        for _ in range(3):
+        reloaded = False
+        for _ in range(4):
             self.watch = E.LogWatch(E.game_log())
             try:
                 work, _ = nm.addrs()
                 nm.wr(work + CONTENT_OFF, bytes([TRAINING]))
-                nm.start(p1=self.p1, p2=self.p2, stage=E.GYM, log=lambda m: None)
+                # Manual control mode: on Normal the game turns repeated A
+                # presses into its own auto combo, so "AAAA" would not land
+                nm.start(p1=self.p1, p2=self.p2, stage=E.GYM, log=lambda m: None, manual=True)
             except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
                 log(f"match start failed: {e}")
                 time.sleep(5)
@@ -182,6 +185,17 @@ class Game:
             else:
                 log("match did not reach Battle in 120 s")
                 continue
+            # a character's first battle adds its control-mode entry during the
+            # load, too late for that load: set it now and load once more
+            changed, missing = nm.set_manual_all([self.p1, self.p2])
+            if changed and not reloaded:
+                log("control mode Manual set for " + ", ".join(nm.NAME.get(c, str(c)) for c in sorted(changed))
+                    + " - reloading the match")
+                reloaded = True
+                continue
+            if changed or missing:
+                log("warning: auto combo may stay on for "
+                    + ", ".join(nm.NAME.get(c, str(c)) for c in sorted(changed | missing)))
             if self.a.speed != 1:
                 nm.set_speed(self.a.speed)
             sampler.reset(self.hook)
@@ -259,7 +273,8 @@ class Game:
         me, en = t.get("me"), t.get("enemy")
         if self.trace is not None and me and en:
             self.trace.append([self.link.frame, me.get("act"), me.get("cmd"), en.get("act"),
-                               round(me.get("dist") or 0), round(en.get("hp") or 0, 4)])
+                               round(me.get("dist") or 0), round(en.get("hp") or 0, 4),
+                               me.get("atk"), me.get("atkcount")])
         if me and en:
             self.chain.update(sampler.dedupe(snap), [r["key"] for r in t["mine"]],
                               [r["key"] for r in t["theirs"]], me["key"], en["key"])

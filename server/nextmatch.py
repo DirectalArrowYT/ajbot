@@ -136,6 +136,60 @@ def set_char(blk, cid, costume):
     wr(blk, bytes([cid]))
 
 
+CONTROL_OFF = 0x538   # player entry: TMap<character id, ComboModeSetting> - the
+                      # control-mode screen's choice per character. Element
+                      # (12 bytes): id, ComboMode (0 Normal, 1 Manual), auto
+                      # change combo, auto Plus Ultra, then the set's hash-next
+                      # and hash-index ints. Sparse array header: data ptr,
+                      # num, max, then the allocation bits inline at +0x10. A
+                      # menu-free start leaves Normal with both auto on, and on
+                      # Normal the game turns repeated A presses into its own
+                      # auto combo.
+MAP_ELEM = 12
+MANUAL = bytes([1, 0, 0])
+
+
+def set_manual(players, p, team):
+    """Control mode Manual (auto change combo and auto Plus Ultra off) for
+    player p's characters that the map already holds. Only the three mode
+    bytes of an element are written - never the hash ints (overwriting those
+    crashed the game on load). The game reads the map when a battle loads (not
+    mid-battle) and adds an element for a character the first time it fights,
+    so a character missing here gets one during the load: set it then and load
+    again. Returns (ids of team now on Manual, ids this call changed)."""
+    base = players + p * ENTRY + CONTROL_OFF
+    hdr = rd(base, 0x30)
+    ptr, num, mx = struct.unpack_from("<Qii", hdr)
+    bits_heap, = struct.unpack_from("<Q", hdr, 0x20)
+    if not ptr or not 0 <= num <= mx <= 128:
+        return set(), set()
+    bits = int.from_bytes(rd(bits_heap, 16) if bits_heap else hdr[0x10:0x20], "little")
+    data = rd(ptr, num * MAP_ELEM)
+    done, changed = set(), set()
+    for i in range(num):
+        e = data[i * MAP_ELEM:i * MAP_ELEM + 4]
+        if bits >> i & 1 and e[0] in team:
+            if e[1:4] != MANUAL:
+                wr(ptr + i * MAP_ELEM + 1, MANUAL)
+                changed.add(e[0])
+            done.add(e[0])
+    return done, changed
+
+
+def set_manual_all(teams):
+    """set_manual for both players of the current setup, once a battle is up.
+    Returns (ids just switched to Manual - the running battle still has them
+    on auto, ids with no entry at all)."""
+    work, _ = addrs()
+    players, num, _ = struct.unpack_from("<Qii", rd(work + 0x50, 16))
+    changed, missing = set(), set()
+    for p, team in enumerate(teams[:num]):
+        done, ch = set_manual(players, p, team)
+        changed |= ch
+        missing |= set(team) - done
+    return changed, missing
+
+
 TIMER = 300  # round timer the menu writes for a free battle
 
 
@@ -215,10 +269,12 @@ def pool_from(path):
     return names or None
 
 
-def start(p1=None, p2=None, stage=None, all_=False, log=print, mirror=False, names=None):
+def start(p1=None, p2=None, stage=None, all_=False, log=print, mirror=False, names=None,
+          manual=False):
     """Write both teams and travel to the stage. p1/p2: lists of ids or None
     for random menu picks; mirror=True gives player 2 player 1's team; names
-    limits random picks to those characters (when 3+ of them are pickable).
+    limits random picks to those characters (when 3+ of them are pickable);
+    manual=True puts both teams on control mode Manual (see set_manual).
     Returns (teams, stage). Raises RuntimeError."""
     pool = [i for i, _, cat in MENU if all_ or cat == "Normal"]
     if names:
@@ -238,6 +294,8 @@ def start(p1=None, p2=None, stage=None, all_=False, log=print, mirror=False, nam
     for p, team in enumerate(teams):
         for i, cid in enumerate(team):
             set_char(players + p * ENTRY + i * BLOCK, cid, costume(cid))
+        if manual and set(team) - set_manual(players, p, team)[0]:
+            log(f"p{p + 1}: not every character has a control-mode entry yet")
     prep_setup(work, players, stage)
     for p, team in enumerate(teams):
         log(f"p{p + 1}: " + ", ".join(f"{NAME.get(c, '?')}({c}) {costume(c)}" for c in team))
