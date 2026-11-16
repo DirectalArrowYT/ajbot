@@ -16,6 +16,7 @@ import _root  # noqa: F401,E402  (repo root on sys.path and as cwd)
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -59,7 +60,24 @@ def update_gui(check):
     tracked = subprocess.run(["git", "ls-files", GUI.name], capture_output=True,
                              text=True).stdout.strip() if Path(".git").exists() else ""
     if tracked:
-        print("gui: committed in this checkout - git pull / cargo build updates it")
+        # A dev checkout: the exe comes from this PC's own build, not Releases.
+        built = Path("gui/target/release") / GUI.name
+        if built.exists() and (not GUI.exists() or built.stat().st_mtime > GUI.stat().st_mtime):
+            if check:
+                print("gui: your local build (gui/target/release) is newer - update copies it in")
+                return
+            try:
+                # A running exe can be renamed but not overwritten.
+                old = GUI.with_suffix(".exe.old")
+                old.unlink(missing_ok=True)
+                if GUI.exists():
+                    GUI.rename(old)
+                shutil.copy2(built, GUI)
+                print("gui: copied in your newer local build - restart the GUI to use it")
+            except OSError as e:
+                print(f"gui: could not copy the local build ({e})")
+        else:
+            print("gui: committed in this checkout - cargo build in gui/, then update copies it in")
         return
     if stamp.get("gui") == tag and GUI.exists():
         print(f"gui: up to date ({tag})")

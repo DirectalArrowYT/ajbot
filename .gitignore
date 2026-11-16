@@ -43,3 +43,4 @@ ajbot_local.json
 # Icon extractor build output (published by GitHub Actions)
 tools/iconextract/bin/
 tools/iconextract/obj/
+*.exe.old
