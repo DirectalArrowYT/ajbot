@@ -113,7 +113,7 @@ impl App {
             // The box keeps its own copy: delete there too, or the next
             // refresh from the box would bring the combo back.
             if let (None, Some(line)) = (&err, box_line) {
-                let o = std::process::Command::new("ssh")
+                let o = crate::setup::quiet(&mut std::process::Command::new("ssh"))
                     .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5", &host, &line])
                     .stdin(std::process::Stdio::null()).output();
                 if !matches!(&o, Ok(o) if o.status.success()) {

@@ -104,11 +104,12 @@ class Montages:
         return self.cache[montage]
 
 
-def pick(w, label):
+def pick(w, label, prev=None):
     """(open, close) seconds into montage windows `w` for pressing `label`
-    next: the string's own next-stage window for Melee, else the first
-    cancel window that allows it; None if the move cannot follow here."""
-    if label == "Melee" and w["next"]:
+    next, after `prev` (the move playing): the string's own next-stage window
+    when the same button continues it (A > A, Q2 > Q2), else the first cancel
+    window that allows it; None if the move cannot follow here."""
+    if (label == "Melee" or label == prev) and w["next"]:
         return tuple(w["next"][0])
     for a, b, into in w["cancel"]:
         if label in into:

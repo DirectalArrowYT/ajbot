@@ -8,6 +8,8 @@ This repository is code only: no recordings, trained models or game assets.
 You need your own copy of the game. The GUI, the game-side files and (when
 shared) trained models are on the Releases page.
 
+*Footnote: this project was built with the help of Claude.*
+
 ## Setup (Windows)
 
 1. Get this folder: `git clone https://github.com/DirectalArrowYT/ajbot`

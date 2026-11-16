@@ -142,6 +142,10 @@ class Game:
         # the left) and corrected when a tag brings the other one.
         self.tag_side = {}
         self.p2 = [int(x) for x in a.dummy.split(",")]
+        if a.dummy == DEFAULT_DUMMY and set(self.p2) & set(self.p1):
+            # our team uses a default dummy (drilling Kirishima, Iida or
+            # Asui): fill the dummy team from simple fighters we do not use
+            self.p2 = [i for i in DUMMY_POOL if i not in self.p1][:3]
         self.mine = [nm.NAME[i] for i in self.p1]
         self.theirs = [nm.NAME[i] for i in self.p2]
         if set(self.mine) & set(self.theirs):
@@ -893,6 +897,10 @@ class Search:
         return f"step {self.stuck} stuck at every offset"
 
 
+DEFAULT_DUMMY = "8,5,6"           # Kirishima, Iida, Asui
+DUMMY_POOL = (8, 5, 6, 9, 10, 11, 7)   # + Jiro, Yaoyorozu, Tokoyami, Kaminari
+
+
 def nm_ids(name):
     return {n: i for i, n, _ in nm.MENU}[name]
 
@@ -918,7 +926,7 @@ def main():
     ap.add_argument("--stop-file", help="stop cleanly when this file appears (the GUI)")
     ap.add_argument("--partners", default="4,3", help="our two partners' menu ids")
     ap.add_argument("--partner-names", help="partners by name (Todoroki,Uraraka), instead of ids")
-    ap.add_argument("--dummy", default="8,5,6", help="the dummy team's menu ids")
+    ap.add_argument("--dummy", default=DEFAULT_DUMMY, help="the dummy team's menu ids")
     ap.add_argument("--no-guard", action="store_true",
                     help="the dummy never guards (default: it holds guard from the first hit of "
                          "each attempt, so a gap in the route is blocked)")

@@ -179,8 +179,15 @@ class Keyboard:
     """The keyboard, read as the bot's pad would see it through the game's
     key assignments - only while the game window has the focus."""
 
-    def __init__(self):
-        kb, pad, self.live = read_bindings()
+    def __init__(self, read_game=True):
+        # read_game=False: the game's default layout. Reading the options
+        # (READ_BINDINGS) walks struct/map properties through UE4SS, which can
+        # crash the game - the live trainer does not need it (the prompt's
+        # {Action,} icons already show the person's own bindings).
+        if read_game:
+            kb, pad, self.live = read_bindings()
+        else:
+            kb, pad, self.live = dict(DEFAULT_KEYS), dict(DEFAULT_PAD), False
         # what the bot's pad presses -> the game's markup for that action
         self.markup = {PAD_INPUT[k]: "{%s,}" % ACTION_MARKUP[a]
                        for a, k in pad.items() if a in ACTION_MARKUP and k in PAD_INPUT}

@@ -53,7 +53,8 @@ impl SetupState {
 
 pub type Shared = Arc<Mutex<SetupState>>;
 
-fn quiet(cmd: &mut Command) -> &mut Command {
+/// No console window for a background command (it would pop up over the GUI).
+pub fn quiet(cmd: &mut Command) -> &mut Command {
     #[cfg(windows)]
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     cmd

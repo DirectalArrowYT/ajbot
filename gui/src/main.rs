@@ -363,7 +363,7 @@ fn route_updated(r: &serde_json::Value) -> i64 {
 /// added, and a name both have keeps whichever was practiced last.
 fn merge_box_routes(local: &Path, host: &str, box_dir: &str) -> Result<String, String> {
     let remote = format!("{}/models/demo_routes.json", box_dir.trim_end_matches('/'));
-    let out = std::process::Command::new("ssh")
+    let out = setup::quiet(&mut std::process::Command::new("ssh"))
         .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5", host, "cat", &remote])
         .stdin(std::process::Stdio::null())
         .output()
@@ -1574,7 +1574,7 @@ impl App {
         let dir = self.dir();
         let ctx = ctx.clone();
         std::thread::spawn(move || {
-            let out = std::process::Command::new(&python)
+            let out = setup::quiet(&mut std::process::Command::new(&python))
                 .args(["-m", "ajbot.notation", &key.0, "--char", &key.1, "--json"])
                 .current_dir(&dir)
                 .stdin(std::process::Stdio::null())

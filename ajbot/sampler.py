@@ -135,29 +135,35 @@ do
   end
 end
 
--- The montage playing: every animation.Play* call naming one
+-- The montage playing: every animation.Play* / Attack.Play* call naming one
 -- ("EPl24MirioAnimationId::at002_Attack1_2") sets `mont` and restarts
--- `mont_n` (sampler runs since). The combo trainer times a string's next
--- press from the game's own windows in that montage (ajbot/movewindows.py).
--- Same stale-wrapper guard as above, per function.
+-- `mont_n` (sampler runs since). Attacks start theirs through
+-- Attack.PlayAnimation (ActionAttack.lua SetAnimation / WaitingTurn), other
+-- actions through animation.PlaySimple etc. The combo trainer times a
+-- string's next press from the game's own windows in that montage
+-- (ajbot/movewindows.py). Same stale-wrapper guard as above, per function.
 A.mont_n = (A.mont_n or 0) + 1
 do
-  local anim = rawget(_G, 'animation')
-  if type(anim) == 'table' then
-    A.mw = A.mw or {}
-    for fname, fn in pairs(anim) do
-      if type(fn) == 'function' and type(fname) == 'string' and fname:sub(1, 4) == 'Play'
-         and fn ~= A.mw[fname] then
-        local orig = fn
-        local w = function(a, ...)
-          if type(a) == 'string' then
-            local m = a:match('AnimationId::([%w_]+)')
-            if m then A.mont = m A.mont_n = 0 end
+  A.mw = A.mw or {}
+  for _, tname in ipairs({'animation', 'Attack'}) do
+    local t = rawget(_G, tname)
+    if type(t) == 'table' then
+      for fname, fn in pairs(t) do
+        local key = tname .. '.' .. tostring(fname)
+        if type(fn) == 'function' and type(fname) == 'string' and fname:sub(1, 4) == 'Play'
+           and fn ~= A.mw[key] then
+          local orig = fn
+          local w = function(a, ...)
+            if type(a) == 'string' then
+              -- EPl24MirioAnimationId::at002_Attack1_2, EBattleAnimId::co000_Idle
+              local m = a:match('Anim%a*Id::([%w_]+)')
+              if m then A.mont = m A.mont_n = 0 end
+            end
+            return orig(a, ...)
           end
-          return orig(a, ...)
+          t[fname] = w
+          A.mw[key] = w
         end
-        anim[fname] = w
-        A.mw[fname] = w
       end
     end
   end

@@ -82,6 +82,9 @@ BOTTOM = 3
 STYLE = "header"         # white, outlined row of DT_RichTextStyleCommandList
 SCALE = 1.5
 OP_PENDING_TEXT = 0x610  # WidgetOperationInstructions private pending text (see set_text)
+# Meter tints multiply the gold bar texture, so >1 channels brighten it.
+RED = (3.0, 0.15, 0.1, 0.8)       # meter: time until the input window opens
+GREEN = (0.4, 3.0, 0.5, 0.8)      # meter: the window is open - press now
 
 
 def styled(markup, style=STYLE):
@@ -115,7 +118,8 @@ class Prompt:
     """
 
     def __init__(self):
-        self.w = self.pc = self.op = None
+        self.w = self.pc = self.op = self.fill = None
+        self.fill_p, self.fill_c = 0.0, None
         self.shown = False
 
     def alive(self):
@@ -168,11 +172,21 @@ class Prompt:
         # No SetAnchors/Alignment/DesiredSizeInViewport: the default viewport
         # slot fills the screen; pinning it to a point collapsed it to the
         # top-left corner in battle.
+        fill = new("Image")
+        if not fill:
+            raise RuntimeError("widget construction failed")
         bs = add(root, box, CENTER, BOTTOM)
         U.call(bs, "/Script/UMG.OverlaySlot:SetPadding", f32(0, 0, 0, 230))
         add(box, img, FILL, FILL)
+        add(box, fill, FILL, FILL)
         add(box, op, CENTER, CENTER)
-        U.call(img, "/Script/UMG.Image:SetBrushFromTexture", q(load(BAR)) + b"\1")
+        bar = load(BAR)
+        U.call(img, "/Script/UMG.Image:SetBrushFromTexture", q(bar) + b"\1")
+        # The meter: the same bar shape, tinted, scaled from its left edge.
+        U.call(fill, "/Script/UMG.Image:SetBrushFromTexture", q(bar) + b"\0")
+        U.call(fill, "/Script/UMG.Widget:SetRenderTransformPivot", d(0.0, 0.5))
+        U.call(fill, "/Script/UMG.Widget:SetRenderScale", d(0.0, 1.0))
+        self.fill, self.fill_p, self.fill_c = fill, 0.0, None
         U.call(op, "/Script/UMG.Widget:SetRenderScale", d(SCALE, SCALE))
         U.call(w, "/Script/UMG.Widget:SetVisibility", bytes([HIT_TEST_INVISIBLE]))
         U.call(w, "/Script/UMG.UserWidget:AddToViewport", struct.pack("<i", 50))
@@ -189,6 +203,20 @@ class Prompt:
         if not self.shown:
             U.call(self.w, "/Script/UMG.Widget:SetVisibility", bytes([HIT_TEST_INVISIBLE]))
             self.shown = True
+
+    def meter(self, p, color=RED):
+        """Fill the bar from its left edge to fraction `p` (0..1; 0 or None
+        hides it) in `color` (r, g, b, a). Skips calls that change nothing
+        visible, since each one waits for a game frame."""
+        if not self.w:
+            return
+        p = max(0.0, min(1.0, p or 0.0))
+        if color != self.fill_c:
+            U.call(self.fill, "/Script/UMG.Image:SetColorAndOpacity", f32(*color))
+            self.fill_c = color
+        if abs(p - self.fill_p) >= 0.01 or (p == 0.0) != (self.fill_p == 0.0):
+            U.call(self.fill, "/Script/UMG.Widget:SetRenderScale", d(p, 1.0))
+            self.fill_p = p
 
     def ensure(self):
         """Rebuild if a level load dropped the widget (frames must be running)."""
