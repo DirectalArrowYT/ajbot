@@ -134,6 +134,47 @@ def names_of(bits):
     return [n for bit, n in BUTTON_BITS if bits & bit]
 
 
+def real_pads(hook):
+    """(any pad connected, (buttons, lt, rt, stick x, stick y)) over every
+    real controller, read inside the game (ajhook Zreal: works while the gate
+    holds the game, and sees Steam Input pads); None without Zreal."""
+    try:
+        r = hook._send("Z", "real")
+    except HookError:
+        return None
+    if r.startswith("!"):
+        return None
+    seen = False
+    btn, lt, rt, sx, sy = 0, 0, 0, 0.0, 0.0
+    for tok in r.split():
+        if ":" not in tok:
+            continue
+        seen = True
+        b = bytes.fromhex(tok.split(":", 1)[1])
+        x = int.from_bytes(b[4:6], "little", signed=True) / 32767
+        y = int.from_bytes(b[6:8], "little", signed=True) / 32767
+        btn |= int.from_bytes(b[0:2], "little")
+        lt, rt = max(lt, b[2]), max(rt, b[3])
+        if abs(x) + abs(y) > abs(sx) + abs(sy):
+            sx, sy = x, y
+    return seen, (btn, lt, rt, sx, sy)
+
+
+def input_markup(kb, buttons, stick, trig):
+    """The game's markup for one input, e.g. '{MoveUp,} ↑ + {Melee,}': each
+    action's key icon for the current device ({MoveUp,} is the move stick)."""
+    parts = []
+    if arrow(stick):
+        parts.append("{MoveUp,} " + arrow(stick))
+    for bit, name in BUTTON_BITS:
+        if buttons & bit:
+            parts.append(kb.markup.get(("btn", bit), name))
+    if trig:
+        left = trig == "left"
+        parts.append(kb.markup.get(("lt", 0) if left else ("rt", 0), "LT" if left else "RT"))
+    return " + ".join(parts)
+
+
 class Keyboard:
     """The keyboard, read as the bot's pad would see it through the game's
     key assignments - only while the game window has the focus."""
@@ -257,40 +298,18 @@ class HumanGate:
             return False
 
     def markup(self, k, buttons, stick, trig):
-        """The game's markup for step k's input, e.g. '{MoveUp,} → + {Melee,}  5A'."""
-        parts = []
-        if arrow(stick):
-            parts.append("{MoveUp,} " + arrow(stick))
-        for bit, name in BUTTON_BITS:
-            if buttons & bit:
-                parts.append(self.kb.markup.get(("btn", bit), name))
-        if trig:
-            left = trig == "left"
-            parts.append(self.kb.markup.get(("lt", 0) if left else ("rt", 0), "LT" if left else "RT"))
-        return " + ".join(parts) + "   " + self.chain[k]
+        """The game's markup for step k's input, e.g. '{MoveUp,} ↑ + {Melee,}   5A'."""
+        return input_markup(self.kb, buttons, stick, trig) + "   " + self.chain[k]
 
     def _pads(self):
         """(buttons, lt, rt, stick x, stick y) over every real pad, all zero
         when none is connected; None when the hook has no Zreal."""
-        try:
-            r = self.g.hook._send("Z", "real")
-        except HookError:
+        r = real_pads(self.g.hook)
+        if r is None:
             return None
-        if r.startswith("!"):
-            return None
-        btn, lt, rt, sx, sy = 0, 0, 0, 0.0, 0.0
-        for tok in r.split():
-            if ":" not in tok:
-                continue
-            self.pad_seen = True
-            b = bytes.fromhex(tok.split(":", 1)[1])
-            x = int.from_bytes(b[4:6], "little", signed=True) / 32767
-            y = int.from_bytes(b[6:8], "little", signed=True) / 32767
-            btn |= int.from_bytes(b[0:2], "little")
-            lt, rt = max(lt, b[2]), max(rt, b[3])
-            if abs(x) + abs(y) > abs(sx) + abs(sy):
-                sx, sy = x, y
-        return btn, lt, rt, sx, sy
+        seen, state = r
+        self.pad_seen = self.pad_seen or seen
+        return state
 
     def read(self):
         """Pads and keyboard together: (buttons, lt, rt, x, y), or None."""

@@ -86,10 +86,11 @@ OP_PENDING_TEXT = 0x610  # WidgetOperationInstructions private pending text (see
 
 def styled(markup, style=STYLE):
     """Wrap the plain-text runs of `markup` (everything outside {Action,}
-    icons) in <style>...</>; unstyled text uses the table's black Default row."""
+    icons and runs already tagged <row>...</>) in <style>...</>; untagged
+    text uses the table's black Default row."""
     out = []
-    for part in re.split(r"(\{[A-Za-z0-9_]+,\})", markup):
-        if part.startswith("{") or not part.strip():
+    for part in re.split(r"(\{[A-Za-z0-9_]+,\}|<[A-Za-z0-9_]+>.*?</>)", markup):
+        if part.startswith(("{", "<")) or not part.strip():
             out.append(part)
         else:
             out.append(f"<{style}>{part}</>")
@@ -115,6 +116,7 @@ class Prompt:
 
     def __init__(self):
         self.w = self.pc = self.op = None
+        self.shown = False
 
     def alive(self):
         """Still on screen: same world (a level load drops our widget with
@@ -175,16 +177,28 @@ class Prompt:
         U.call(w, "/Script/UMG.Widget:SetVisibility", bytes([HIT_TEST_INVISIBLE]))
         U.call(w, "/Script/UMG.UserWidget:AddToViewport", struct.pack("<i", 50))
         self.w, self.pc, self.op = w, pc, op
+        self.shown = True
 
-    def show(self, markup):
-        if not self.alive():
+    def show(self, markup, check=True):
+        """Show `markup`. check=False skips the liveness check (UE4SS probes,
+        which only answer while frames run and take ~0.1 s each): for prompts
+        that must go up within a frame or two, after ensure()."""
+        if not self.w or (check and not self.alive()):
             self.build()
         self.set_text(markup)
-        U.call(self.w, "/Script/UMG.Widget:SetVisibility", bytes([HIT_TEST_INVISIBLE]))
+        if not self.shown:
+            U.call(self.w, "/Script/UMG.Widget:SetVisibility", bytes([HIT_TEST_INVISIBLE]))
+            self.shown = True
 
-    def hide(self):
-        if self.w and self.alive():
+    def ensure(self):
+        """Rebuild if a level load dropped the widget (frames must be running)."""
+        if not self.alive():
+            self.build()
+
+    def hide(self, check=True):
+        if self.w and self.shown and (not check or self.alive()):
             U.call(self.w, "/Script/UMG.Widget:SetVisibility", bytes([HIDDEN]))
+        self.shown = False
 
 
 if __name__ == "__main__":

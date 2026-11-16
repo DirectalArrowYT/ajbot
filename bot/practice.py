@@ -906,9 +906,9 @@ def main():
     ap.add_argument("--route-json", help="a saved route given as JSON (the GUI passes the "
                     "one picked, so it plays on any machine's game)")
     ap.add_argument("--trainer", action="store_true",
-                    help="combo trainer for a person: the game holds before every step, an "
-                         "overlay on the game window shows the input, and it goes on once you "
-                         "press it on your controller (Back quits). Real time, nothing saved")
+                    help="combo trainer for a person, in their own training match: they play "
+                         "their fighter, the next input shows in the game, and the game holds on "
+                         "each step's frame until they press it (bot/live_trainer.py)")
     ap.add_argument("--watch", type=int, default=0, metavar="N",
                     help="just play the saved timing N times to watch it: nothing is "
                          "tuned or saved")
@@ -1006,6 +1006,11 @@ def main():
                          "than this AJBot - install the current one and restart the game")
             sys.exit("the game copy's hook is not answering - start it, or pass --launch")
         game = launch_game(a)
+
+    if a.trainer:
+        # The person's own match: nothing is started, they play their fighter.
+        from live_trainer import Live
+        sys.exit(Live(route, a.stop_file, log=log).run())
 
     learned = route.get("learned") or {}
     adj = None if a.fresh else learned.get("adj")
