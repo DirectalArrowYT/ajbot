@@ -97,6 +97,13 @@ fn now_ms() -> u64 {
 static REAL_GET: AtomicUsize = AtomicUsize::new(0);
 static INSTALLED: AtomicBool = AtomicBool::new(false);
 static GATE_ON: AtomicBool = AtomicBool::new(false);
+static KEYS_MUTED: AtomicBool = AtomicBool::new(false);
+
+/// Keyboard messages are dropped (Zkeys mute) - only while the gate is on, so
+/// a trainer that dies leaves the keyboard working once the gate lets go.
+pub fn keys_muted() -> bool {
+    KEYS_MUTED.load(Ordering::Relaxed) && GATE_ON.load(Ordering::Relaxed)
+}
 static GAME_TID: AtomicU32 = AtomicU32::new(0);
 
 fn pads() -> &'static Mutex<[Gamepad; MAX_PADS]> {
@@ -422,6 +429,14 @@ pub fn command(op: u8, rest: &str) -> String {
     }
     if first == "real" {
         return real_states();
+    }
+    if first == "keys" {
+        // Zkeys mute|pass: while muted (and the gate is on) the game never
+        // sees keyboard messages - the combo trainer reads the keyboard itself,
+        // and presses made while the game is held must not reach P1 later.
+        let mute = pads_tok.first() == Some(&"mute");
+        KEYS_MUTED.store(mute, Ordering::Relaxed);
+        return format!("keys {}", if mute { "muted" } else { "pass" });
     }
     if first == "pad" {
         let (Some(i), Some(hex)) = (pads_tok.first().and_then(|s| s.parse::<usize>().ok()), pads_tok.get(1)) else {

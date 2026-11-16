@@ -1746,7 +1746,7 @@ impl App {
 
     /// Combo trainer for a person (practice.py --trainer): this PC's game holds
     /// before every step, an overlay on the game window shows the input, and
-    /// it goes on once it is pressed on the controller. A saved combo brings
+    /// it goes on once it is pressed on the controller or keyboard. A saved combo brings
     /// its learned timing; otherwise the editor's text is used.
     fn start_trainer(&mut self, saved: Option<&SavedRoute>) {
         let s = &self.settings;
@@ -1772,7 +1772,8 @@ impl App {
         match Runner::start(&s.python, &self.dir(), "bot/practice.py", &args, &label) {
             Ok(run) => {
                 self.status = "trainer: when the game stops, press the input shown on the game \
-                               window on your controller. Back on the pad (or Stop here) ends it."
+                               window on your controller or keyboard. Back on the pad, Backspace \
+                               or Stop here ends it."
                     .into();
                 self.runner = Some(run);
                 self.show_console = true;

@@ -692,6 +692,7 @@ unsafe fn pipe_write_msg(h: HANDLE, s: &str) {
 ///   L<ctx> <map>  travel to /Game/... via FCommonStatics::OpenLevel (any
 ///            time: runs on the game thread from the frame pump)
 ///   Z<n> <pad>..  lockstep: set virtual pads, run n frames, park (see lockstep.rs)
+///   Zkeys mute|pass  drop keyboard messages while the gate is on (combo trainer)
 ///   N<n>     number of virtual XInput pads (slots 0..n)
 ///   F        frame pump status: "frames=<n> game_tid=<tid> lua=<bool>"
 ///   A<size>  zeroed block from the game's allocator: "0x<addr>"
@@ -984,7 +985,20 @@ unsafe extern "system" fn peek_hook(msg: *mut c_void, hwnd: *mut c_void, lo: u32
         lockstep::on_pump(drain_native, log);
     }
     let orig: PeekFn = std::mem::transmute(ORIG_PEEK.load(Ordering::Relaxed));
-    orig(msg, hwnd, lo, hi, rm)
+    loop {
+        let r = orig(msg, hwnd, lo, hi, rm);
+        if r == 0 || msg.is_null() || !lockstep::keys_muted() {
+            return r;
+        }
+        // MSG.message at +8: keys, chars and the middle button (bindable).
+        let m = *((msg as *const u8).add(8) as *const u32);
+        if !matches!(m, 0x100..=0x109 | 0x207..=0x209) {
+            return r;
+        }
+        if rm & 1 == 0 {
+            orig(msg, hwnd, m, m, 1); // a PM_NOREMOVE peek: take it out of the queue
+        }
+    }
 }
 
 /// The process's first thread (earliest creation time) - UE's game thread.

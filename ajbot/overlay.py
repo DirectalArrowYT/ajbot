@@ -356,13 +356,15 @@ class Overlay:
                 self._text(dc, arr, ix, iy, d, d, int(84 * s), TEXT)
                 ix += d + 24 * s
             for b in icons:
-                col = BUTTON_COLORS.get(b, rgb(90, 96, 112))
-                if b in BUTTON_COLORS:
+                pad = not st.get("keys")          # keyboard keys are all plain keycaps
+                col = BUTTON_COLORS.get(b, rgb(90, 96, 112)) if pad else rgb(90, 96, 112)
+                if pad and b in BUTTON_COLORS:
                     self._box(dc, ix, iy, d, d, col, TEXT, radius=d, width=max(2, int(4 * s)))
                 else:
                     self._box(dc, ix, iy + d * 0.2, d, d * 0.6, col, TEXT, radius=24 * s,
                               width=max(2, int(4 * s)))
-                self._text(dc, b, ix, iy, d, d, int((70 if len(b) == 1 else 44) * s), TEXT)
+                self._text(dc, b, ix, iy, d, d, int((70 if len(b) == 1 else 44 if len(b) < 6 else 30) * s),
+                           TEXT)
                 ix += d + 24 * s
             self._text(dc, prompt, x, y + 158 * s, bw, 44 * s, int(36 * s), GOLD)
             if st.get("wrong"):

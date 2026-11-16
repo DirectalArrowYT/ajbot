@@ -244,7 +244,8 @@ impl App {
                                 if ui.add_enabled(!running && !self.settings.combo_on_box,
                                                   egui::Button::new("🎮").small())
                                     .on_hover_text(
-                                        "Train me: the game stops before every input and goes on                                          when you press it on your controller (this PC's game)")
+                                        "Train me: the game stops before every input and goes on when you press it on \
+                                         your controller or keyboard (this PC's game)")
                                     .clicked()
                                 {
                                     train = Some((*r).clone());
@@ -616,8 +617,9 @@ impl App {
                     .on_hover_text(
                         "Learn it yourself on this PC's game: the game stops before every input, \
                          the input shows on the game window, and it carries on when you press it \
-                         on your controller - at your own pace. Back on the pad ends it. Uses the \
-                         saved combo's learned timing when there is one.")
+                         on your controller or keyboard (the game's own key setup) - at your own \
+                         pace. Back on the pad or Backspace ends it. Uses the saved combo's \
+                         learned timing when there is one.")
                     .on_disabled_hover_text(if local {
                         "Type or pick a combo first"
                     } else {
