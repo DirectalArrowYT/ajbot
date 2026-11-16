@@ -10,7 +10,9 @@ Runs on its own game copy (AJ_INSTANCE, default 4 here, so a farm on copies
 the game itself with --launch. Each attempt:
 
   1. Our character (the route's) vs a dummy team on the gym. Player 2's pad
-     stays neutral, so the dummy just stands there.
+     holds guard from the first hit of each attempt, so the dummy blocks the
+     moment it leaves hitstun and only a true combo lands (--no-guard: it
+     just stands there).
   2. Walk in until the fighters are as far apart as when the demo began.
   3. Press the route step by step on the lockstep frame clock. A step is
      pressed `gap` frames after the previous one REGISTERED (its label showed
@@ -69,6 +71,7 @@ from ajbot import sampler                     # noqa: E402
 from ajbot.chain import ChainTracker          # noqa: E402
 from ajbot.hook import Hook, HookError        # noqa: E402
 from ajbot.lockstep import Link               # noqa: E402
+from ajbot.pad import GUARD                   # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent   # the repo root
 NEUTRAL = (0.0, 0.0)
@@ -579,6 +582,7 @@ def attempt(g, route, adj, lat, a):
     f_end = None
     judge = Judge(steps)
     wait_out = None               # (step, "hit"/"out", due by the old timing, give-up frame)
+    guarding = False              # the dummy holds guard once our first hit lands
     g.chain.drain()
 
     def timing(w, f):
@@ -697,6 +701,9 @@ def attempt(g, route, adj, lat, a):
             f_end = f if f_end is None else f_end
             if g.chain.by_us is None or f - f_end > 120:
                 break
+        if not guarding and not a.no_guard and g.chain.by_us is not None:
+            g.pad2.hold(GUARD)
+            guarding = True
         if trig and f >= release_at:
             g.pad.trigger(trig, 0.0)
             trig = None
@@ -776,6 +783,8 @@ def attempt(g, route, adj, lat, a):
         if judge.active:
             judge.see(g.link.frame, None, None, en or {}, obs_f)
     combos = g.chain.drain()
+    if guarding:
+        g.pad2.release(GUARD)
     best = max(combos, key=lambda c: c.hits, default=None)
     if judge.active:
         judge.flush(g.link.frame, force=True)
@@ -899,6 +908,9 @@ def main():
     ap.add_argument("--partners", default="4,3", help="our two partners' menu ids")
     ap.add_argument("--partner-names", help="partners by name (Todoroki,Uraraka), instead of ids")
     ap.add_argument("--dummy", default="8,5,6", help="the dummy team's menu ids")
+    ap.add_argument("--no-guard", action="store_true",
+                    help="the dummy never guards (default: it holds guard from the first hit of "
+                         "each attempt, so a gap in the route is blocked)")
     ap.add_argument("--speed", type=float, default=100)
     ap.add_argument("--per-match", type=int, default=40,
                     help="attempts before a match restart (training mode resets positions in between)")

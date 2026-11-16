@@ -3,6 +3,8 @@
     python3 bot/drill.py                         # copies 0-3, every long route once
     python3 bot/drill.py --copies 2 --min-steps 10 --max-attempts 200
     python3 bot/drill.py --only Mirio --rounds 3
+    python3 bot/drill.py --sources library --max-attempts 40 --confirm 3
+                                                 # every library combo, each character
 
 Routes, longest first:
   * models/drill_routes.json - combos written by people, in combo notation
@@ -21,6 +23,12 @@ Routes, longest first:
     was out of hitstun for seconds - guarding, attacking back, running -
     which no dummy in training mode reproduces. A route whose opponent was
     free for more than FREE_MAX_S is skipped.
+  * the combo library, combos/<Character>.json (ajbot.combodb), with
+    --sources library: every combo of the --tiers given, in its notation.
+    Each result goes back into its library entry as "tested" (attempts,
+    landed, best steps, against the guarding dummy); the tier stays for
+    people to change. Combos that need a gauge or awakening ("requires")
+    are skipped - the drill does not set those up.
   * true combos found in the recordings (ajbot.combos), rebuilt the same way,
     the --per-char biggest per character with at least --min-steps steps.
     Both kinds must open from neutral: one the person started off a sidekick
@@ -57,7 +65,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent   # the repo root
 sys.path.insert(0, str(HERE))
 
-from ajbot import demo, notation           # noqa: E402
+from ajbot import combodb, demo, notation  # noqa: E402
 from ajbot import dataset as D             # noqa: E402
 from ajbot import routemine                # noqa: E402
 from ajbot import agent as A               # noqa: E402
@@ -253,18 +261,44 @@ def candidates(a):
         route["drill_source"] = source
         out.append(route)
 
+    sources = set(a.sources.split(","))
     try:
         written = json.loads(NOTATION_PATH.read_text()).get("routes") or []
     except (OSError, ValueError):
+        written = []
+    if "notation" not in sources:
         written = []
     for w in written:
         try:
             add(notation.route(w["notation"], w["char"], w.get("name")), "notation")
         except (notation.NotationError, KeyError) as e:
             log(f"skip {w.get('name')}: {e}")
+    if "library" in sources:
+        tiers = set(a.tiers.split(","))
+        for char in combodb.chars_with_files(HERE / combodb.DIR):
+            if a.only and char not in a.only.split(","):
+                continue
+            for c in combodb.load(char, HERE / combodb.DIR).get("combos") or []:
+                if c.get("tier") not in tiers:
+                    continue
+                cid = c.get("id") or combodb.make_id(char, c["notation"])
+                if c.get("requires"):
+                    log(f"skip library {cid}: needs {c['requires']}")
+                    continue
+                try:
+                    r = notation.route(c["notation"], char, f"lib {cid}: {c['notation']}")
+                except (notation.NotationError, KeyError) as e:
+                    log(f"skip library {cid}: {e}")
+                    continue
+                if c.get("partners"):
+                    r["partners"] = list(dict.fromkeys((r.get("partners") or []) + c["partners"]))
+                r["lib"] = {"char": char, "id": cid}
+                add(r, "library")
     try:
         mined = json.loads(MINED_PATH.read_text()).get("chars") or {}
     except (OSError, ValueError):
+        mined = {}
+    if "mined" not in sources:
         mined = {}
     long = [(char, r) for char, items in mined.items() for r in items
             if len(r.get("steps") or []) >= a.min_steps
@@ -292,15 +326,17 @@ def candidates(a):
             log(f"  {name}: no recording found, guessing {a.gap}-frame gaps")
             route = demo.from_labels(r["steps"], char, name, gap=a.gap, source="mined")
         add(route, "mined")
-    for char, items in true_combos(a.corpus, a.min_steps, a.per_char).items():
+    for char, items in (true_combos(a.corpus, a.min_steps, a.per_char).items()
+                        if "combo" in sources else ()):
         if a.only and char not in a.only.split(","):
             continue
         for r in items:
             r["name"] = f"combo {char}: {' > '.join(s['label'] for s in r['steps'])}"
             log(f"  {r['name']}: true combo from {r['src']['file']}, {r['dealt']:.2f} dmg")
             add(r, "combo")
-    # People's routes first, then the longest mined ones.
-    out.sort(key=lambda r: (r["drill_source"] != "notation", -len(r["steps"])))
+    # People's routes first, then the library, then the longest mined ones.
+    rank = {"notation": 0, "library": 1}
+    out.sort(key=lambda r: (rank.get(r["drill_source"], 2), -len(r["steps"])))
     return out
 
 
@@ -330,6 +366,29 @@ def record(route):
     return True
 
 
+def record_library(route):
+    """Write a library combo's drill result into its combos/<Character>.json
+    entry ("tested"). Returns the entry's new "tested", or None."""
+    lib = route.get("lib")
+    saved = demo.get(route["name"]) or {}
+    learned = saved.get("learned") or {}
+    if not lib or not learned.get("attempts"):
+        return None
+    tested = {"attempts": learned["attempts"], "landed": learned.get("landed", 0),
+              "best_steps": learned.get("best", 0), "steps": len(route["steps"]),
+              "dummy": "guards", "by": "bot", "date": time.strftime("%Y-%m-%d")}
+    root = HERE / combodb.DIR
+    with open(root / ".drill.lock", "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        data = combodb.load(lib["char"], root)
+        for c in data.get("combos") or []:
+            if (c.get("id") or combodb.make_id(lib["char"], c["notation"])) == lib["id"]:
+                c["tested"] = tested
+                combodb.save(data, root)
+                return tested
+    return None
+
+
 def worker(n, work, a, procs):
     env = dict(os.environ, AJ_INSTANCE=str(n))
     while not STOP.exists():
@@ -352,6 +411,7 @@ def worker(n, work, a, procs):
         saved = demo.get(route["name"]) or {}
         learned = saved.get("learned") or {}
         kept = record(route)
+        record_library(route)
         log(f"copy {n}: done in {(time.time() - t0) / 60:.1f} min (exit {p.returncode}) - "
             f"best {learned.get('best', 0)}/{len(route['steps'])} steps, landed "
             f"{learned.get('landed', 0)}/{learned.get('attempts', 0)}"
@@ -375,6 +435,11 @@ def main():
     ap.add_argument("--corpus", default=str(HERE),
                     help="folder with runs/ and botruns/ (the human recordings)")
     ap.add_argument("--python", default=sys.executable)
+    ap.add_argument("--sources", default="notation,mined,combo",
+                    help="comma list of route sources: notation (models/drill_routes.json), "
+                         "mined, combo (recordings), library (combos/*.json)")
+    ap.add_argument("--tiers", default=",".join(combodb.TIERS),
+                    help="library tiers to drill (with --sources library)")
     ap.add_argument("--list", action="store_true", help="print the routes, run nothing")
     a = ap.parse_args()
 

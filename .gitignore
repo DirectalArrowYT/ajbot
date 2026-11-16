@@ -44,3 +44,4 @@ ajbot_local.json
 tools/iconextract/bin/
 tools/iconextract/obj/
 *.exe.old
+combos/.drill.lock
