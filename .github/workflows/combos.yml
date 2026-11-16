@@ -34,7 +34,9 @@ jobs:
           python-version: "3.12"
 
       - name: Check
-        run: python -m ajbot.combodb check
+        run: |
+          pip install -q numpy
+          python -m ajbot.combodb check
 
       - name: Rebuild pages
         if: github.event_name != 'pull_request'
