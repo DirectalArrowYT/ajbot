@@ -1030,7 +1030,7 @@ def main():
     if a.trainer:
         try:
             from trainer_gate import HumanGate
-            g.gate = HumanGate(g, route)
+            g.gate = HumanGate(g, route, a.stop_file)
         except (OSError, RuntimeError, ImportError) as e:
             sys.exit(f"trainer: {e}")
     if not g.restart() and not relaunch(a, g):
@@ -1109,7 +1109,7 @@ def main():
                 total_landed += ok
                 if g.gate:
                     if g.gate.quit:
-                        log("quit from the pad")
+                        log("trainer stopped (Back on the pad, or Stop)")
                         break
                     g.gate.result(ok, r)
                 tag = "LAND" if ok else f"fail@{r['fail_at']}"

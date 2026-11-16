@@ -7,6 +7,7 @@ ajhook's Zreal, so a Steam Input pad counts. The bot then presses it on that
 exact frame: the person goes at their own pace, and between prompts the
 combo plays in real time. Back on the pad quits.
 """
+import os
 import time
 
 from ajbot.hook import HookError
@@ -34,8 +35,9 @@ def names_of(bits):
 
 
 class HumanGate:
-    def __init__(self, g, route):
+    def __init__(self, g, route, stop_file=None):
         self.g = g
+        self.stop_file = stop_file          # the GUI's Stop, honoured while the game is held
         self.chain = [chip(s) for s in route["steps"]]
         self.quit = False
         if self.read() is None:
@@ -97,6 +99,10 @@ class HumanGate:
             if time.time() - keep > 1.0:
                 self.g.link.step(0)           # keeps the gate holding this frame
                 keep = time.time()
+                if self.stop_file and os.path.exists(self.stop_file):
+                    self.quit = True
+                    self.ov.clear()
+                    return False
             st = self.read()
             if st is None:
                 time.sleep(0.05)

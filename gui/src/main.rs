@@ -1744,6 +1744,44 @@ impl App {
         self.save_settings();
     }
 
+    /// Combo trainer for a person (practice.py --trainer): this PC's game holds
+    /// before every step, an overlay on the game window shows the input, and
+    /// it goes on once it is pressed on the controller. A saved combo brings
+    /// its learned timing; otherwise the editor's text is used.
+    fn start_trainer(&mut self, saved: Option<&SavedRoute>) {
+        let s = &self.settings;
+        let (mut args, what, char_) = match saved {
+            Some(r) => (vec!["--route-json".to_string(), r.json.clone()], r.name.clone(), r.char_.clone()),
+            None => {
+                let text = s.combo_text.trim().to_string();
+                if text.is_empty() {
+                    self.status = "type a combo first".into();
+                    return;
+                }
+                (vec!["--char".into(), s.combo_char.clone(), "--notation".into(), text.clone()],
+                 text, s.combo_char.clone())
+            }
+        };
+        let partners: Vec<String> = s.combo_partners.split(',').map(|x| x.trim().to_string())
+            .filter(|x| !x.is_empty()).collect();
+        if !partners.is_empty() {
+            args.extend(["--partner-names".into(), partners.join(",")]);
+        }
+        args.extend(["--trainer".into(), "--instance".into(), "0".into()]);
+        let label = format!("Combo trainer: {} - {}", display(&char_), what);
+        match Runner::start(&s.python, &self.dir(), "bot/practice.py", &args, &label) {
+            Ok(run) => {
+                self.status = "trainer: when the game stops, press the input shown on the game \
+                               window on your controller. Back on the pad (or Stop here) ends it."
+                    .into();
+                self.runner = Some(run);
+                self.show_console = true;
+            }
+            Err(e) => self.status = e,
+        }
+        self.save_settings();
+    }
+
     fn ui_sidebar(&mut self, ui: &mut egui::Ui) {
         let frame = egui::Frame::new().fill(theme::SIDEBAR).inner_margin(egui::Margin::same(10));
         egui::Panel::left("nav").exact_size(196.0).resizable(false).frame(frame).show(ui, |ui| {

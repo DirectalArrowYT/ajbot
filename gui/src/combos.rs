@@ -201,6 +201,7 @@ impl App {
             ui.add_space(4.0);
             let mut load: Option<SavedRoute> = None;
             let mut watch: Option<SavedRoute> = None;
+            let mut train: Option<SavedRoute> = None;
             let mut delete: Option<String> = None;
             egui::ScrollArea::vertical().id_salt("combo_library").max_height(380.0)
                 .auto_shrink([false, true]).show(ui, |ui| {
@@ -239,6 +240,14 @@ impl App {
                                     .clicked()
                                 {
                                     watch = Some((*r).clone());
+                                }
+                                if ui.add_enabled(!running && !self.settings.combo_on_box,
+                                                  egui::Button::new("🎮").small())
+                                    .on_hover_text(
+                                        "Train me: the game stops before every input and goes on                                          when you press it on your controller (this PC's game)")
+                                    .clicked()
+                                {
+                                    train = Some((*r).clone());
                                 }
                                 if r.attempts > 0 {
                                     let rate = r.landed as f32 / r.attempts as f32;
@@ -282,6 +291,10 @@ impl App {
             if let Some(r) = watch {
                 self.load_combo(&r);
                 self.watch_saved(&r);
+            }
+            if let Some(r) = train {
+                self.load_combo(&r);
+                self.start_trainer(Some(&r));
             }
             if let Some(n) = delete {
                 self.combo_confirm_delete = None;
@@ -596,6 +609,28 @@ impl App {
                     if let Some(r) = &saved {
                         self.watch_saved(r);
                     }
+                }
+                let local = !self.settings.combo_on_box;
+                if ui.add_enabled(!running && local && (has_text || saved.is_some()),
+                                  egui::Button::new("🎮 Train me"))
+                    .on_hover_text(
+                        "Learn it yourself on this PC's game: the game stops before every input, \
+                         the input shows on the game window, and it carries on when you press it \
+                         on your controller - at your own pace. Back on the pad ends it. Uses the \
+                         saved combo's learned timing when there is one.")
+                    .on_disabled_hover_text(if local {
+                        "Type or pick a combo first"
+                    } else {
+                        "The trainer runs on this PC's game - pick \"This PC's game\" above"
+                    })
+                    .clicked()
+                {
+                    // The saved copy only while the editor still holds its combo.
+                    let text = self.settings.combo_text.trim().to_string();
+                    let same = saved.as_ref().filter(|r| text.is_empty()
+                        || r.notation.as_deref().map(str::trim) == Some(text.as_str()));
+                    self.saved_pick = Some(self.combo_save_name());
+                    self.start_trainer(same);
                 }
                 if let Some(r) = self.runner.as_mut() {
                     if r.label.starts_with("Combo ") {
