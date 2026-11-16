@@ -205,6 +205,10 @@ def parse_args():
                     help="do not append match results to stats/matches.jsonl")
     ap.add_argument("--stop-file", default=None,
                     help="stop cleanly when this file appears (used by the GUI)")
+    ap.add_argument("--matches", type=int, default=0, metavar="N",
+                    help="stop after N finished matches. With --model-b the "
+                         "two models are then compared side by side (also "
+                         "saved to stats/compare.jsonl)")
     return ap.parse_args()
 
 
@@ -1022,14 +1026,29 @@ def main():
     # Head-to-head tally: policy -> [wins, losses], plus wins per side.
     tally = {args.model: [0, 0], args.model_b: [0, 0]} if duel else None
     side_wins = collections.Counter()
+    # Every stats line of this run carries its id, so a comparison can be
+    # rebuilt later (python -m ajbot.compare --run ID).
+    run_id = time.strftime("%Y%m%d-%H%M%S") + _inst_tag()
+    rows = []                   # this run's stats lines, both bots
+    per_bot = collections.Counter()
+    done = [False]
+    if args.matches:
+        print(f"stopping after {args.matches} match(es)"
+              + (", then comparing the two models" if duel else ""))
 
     def finish(bot):
         # The file's summary line is written when the NEXT match opens its
         # files - by then the team is re-picked and health refilled - so what
         # it reports is captured here, at the end.
         bot.at_end = {"team": list(bot.team), "hp": bot.health()}
-        s = bot.tracker.commit(bot.match_extra())
+        extra = bot.match_extra()
+        extra["run"] = run_id
+        s = bot.tracker.commit(extra)
         if s:
+            rows.append(s)
+            per_bot[bot.tag] += 1
+            if args.matches and min(per_bot[b.tag] for b in bots) >= args.matches:
+                done[0] = True
             print(f"  bot {bot.tag}: " + describe(s))
             if auto and bot.pad is not None:
                 auto.verify(bot.pad is auto.p1, s.get("team_roster"))
@@ -1075,6 +1094,9 @@ def main():
             try:
                 if auto:
                     auto.tick()
+                if done[0]:
+                    print(f"\n{args.matches} match(es) played - stopping")
+                    break
                 if args.stop_file and Path(args.stop_file).exists():
                     try:
                         Path(args.stop_file).unlink()
@@ -1253,6 +1275,12 @@ def main():
             if bot.tracker.close() == "ended":
                 finish(bot)
         print(f"{matches} match(es) this run")
+        if duel and rows:
+            from ajbot import compare
+            entry = compare.build(run_id, args.model, args.model_b, rows)
+            if not args.no_stats:
+                compare.save(entry)
+            print("\n" + compare.report(entry), flush=True)
         close_outputs(bots, ticks)
         line = unknowns.summary()
         if line:

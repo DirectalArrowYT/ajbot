@@ -43,8 +43,13 @@ Everything needed to train is in this repo; it runs on your own PC.
    The previous model is moved to `models/prev/`, so a worse retrain can be
    undone. Flags are passed on to `training/train.py`, e.g.
    `training\retrain.bat --cherrypick` for the slower, more careful fit.
-3. Compare them: `python bot/play2.py --model-b models/prev/<file>` runs the
-   new policy against the old one.
+3. Compare them: Play page > **Bot vs Bot**, pick the old model under
+   "Bot B plays" and tick **Stop after 10 matches, then compare** (Endless
+   matches on, so the bots rematch by themselves). When it stops, the page
+   shows both models side by side: wins, damage, KOs and combos, with a note
+   on whether 10 matches are enough to call it. Without the GUI:
+   `python bot/play2.py --auto --model-b models/prev/<file> --matches 10`
+   (`python -m ajbot.compare` prints the last result again).
 
 ## Machine settings
 

@@ -72,6 +72,9 @@ struct Settings {
     model_b: String,
     /// Bot vs Bot with model_b, endless: swap sides every N matches (0 = never).
     swap_every: u32,
+    /// Bot vs Bot with model_b: stop after compare_n matches and compare.
+    compare_on: bool,
+    compare_n: u32,
     // Combo tester
     combo_char: String,
     combo_text: String,
@@ -109,6 +112,8 @@ impl Default for Settings {
             online_pick: "best".into(),
             model_b: String::new(),
             swap_every: 2,
+            compare_on: true,
+            compare_n: 10,
             combo_char: "Bakugo".into(),
             combo_text: "AAA > Q1 > Dodge Cancel > AA > Q1 > Jump > Q1 > Q2 (Jump Followup)".into(),
             combo_name: String::new(),
@@ -446,6 +451,8 @@ struct App {
     char_sort: CharSort,
     sort_desc: bool,
     autoscroll: bool,
+    /// Last line of stats/compare.jsonl and the file time it was read at.
+    compare: Option<(Option<std::time::SystemTime>, serde_json::Value)>,
     show_console: bool,
     preview: std::sync::Arc<std::sync::Mutex<Preview>>,
     preview_edit: Option<Instant>,
@@ -518,6 +525,7 @@ impl App {
             char_sort: CharSort::Matches,
             sort_desc: true,
             autoscroll: true,
+            compare: None,
             show_console: true,
             preview: Default::default(),
             preview_edit: Some(Instant::now()),
@@ -535,10 +543,13 @@ impl App {
             train_on_server: false,
             local_train_args: String::new(),
         };
-        // AJBOT_GUI_PAGE=play|combos|stats|train|settings|setup opens that page.
+        // AJBOT_GUI_PAGE=play|botvbot|combos|stats|train|settings|setup opens that page.
         if let Ok(pg) = std::env::var("AJBOT_GUI_PAGE") {
+            if pg.eq_ignore_ascii_case("botvbot") {
+                app.mode = Mode::BotVsBot;
+            }
             app.tab = match pg.to_lowercase().as_str() {
-                "play" => Tab::Play,
+                "play" | "botvbot" => Tab::Play,
                 "combos" => Tab::Combos,
                 "stats" => Tab::Stats,
                 "train" => Tab::Train,
@@ -683,14 +694,20 @@ impl App {
                     if s.auto_loop && s.swap_every > 0 {
                         a.extend(["--swap-every".into(), s.swap_every.to_string()]);
                     }
+                    if s.compare_on && s.compare_n > 0 {
+                        a.extend(["--matches".into(), s.compare_n.to_string()]);
+                    }
                     // "keep learning" in a duel: model A (the one being
                     // tested) learns into its own tables, B stays frozen.
                     if s.defense && s.learn {
                         a.extend(["--learner".into(), "A".into()]);
                     }
-                    format!(" [{}{} vs {}]", stem(&s.model),
+                    format!(" [{}{} vs {}{}]", stem(&s.model),
                             if s.defense && s.learn { " (learning)" } else { "" },
-                            stem(&s.model_b))
+                            stem(&s.model_b),
+                            if s.compare_on && s.compare_n > 0 {
+                                format!(", {} matches then compare", s.compare_n)
+                            } else { String::new() })
                 } else {
                     String::new()
                 };
@@ -816,16 +833,16 @@ impl App {
                     if self.mode == Mode::BotVsBot {
                         ui.checkbox(&mut s.auto_loop, egui::RichText::new(
                             "Endless matches (auto rematch)").color(ORANGE))
-                            .on_hover_text("Start on the 2-player character select. Both bots pick                                 random teams (favouring characters with little data); after each                                 match Player 1 goes Continue -> Character Select and they pick                                 again. Leave it running.");
+                            .on_hover_text("Start on the 2-player character select. Both bots pick random teams (favouring characters with little data); after each match Player 1 goes Continue -> Character Select and they pick again. Leave it running.");
                         if s.auto_loop {
                             ui.checkbox(&mut s.auto_again_left, "cursor resets to the first fighter between matches")
-                                .on_hover_text("The bots pick random teams themselves (so they know                                     each character's control-mode setting). If the cursor returns to                                     the first fighter after a match instead of staying on the last                                     pick, tick this - the loop also detects it and switches itself.");
+                                .on_hover_text("The bots pick random teams themselves (so they know each character's control-mode setting). If the cursor returns to the first fighter after a match instead of staying on the last pick, tick this - the loop also detects it and switches itself.");
                         }
                     }
                     if self.mode == Mode::BotVsBot {
                         ui.end_row();
                         ui.label("Bot B plays:")
-                            .on_hover_text("Pick an older policy for bot B to test whether the                                             newest model got better. Old models are kept in                                             models/prev each time training replaces policy.pkl.");
+                            .on_hover_text("Pick an older policy for bot B to test whether the newest model got better. Old models are kept in models/prev each time training replaces policy.pkl.");
                         let shown = if s.model_b.is_empty() || s.model_b == s.model {
                             "same model as A".to_string()
                         } else {
@@ -844,8 +861,20 @@ impl App {
                             });
                         if !s.model_b.is_empty() && s.model_b != s.model && s.auto_loop {
                             ui.add(egui::DragValue::new(&mut s.swap_every).range(0..=50))
-                                .on_hover_text("Swap which side each model plays every N matches                                                 (same teams), so Player 1 / Player 2 advantage                                                 cancels out. 0 = never swap.");
+                                .on_hover_text("Swap which side each model plays every N matches (same teams), so Player 1 / Player 2 advantage cancels out. 0 = never swap.");
                             ui.label("swap sides every N matches");
+                        }
+                        if !s.model_b.is_empty() && s.model_b != s.model {
+                            ui.end_row();
+                            ui.checkbox(&mut s.compare_on, "Stop after")
+                                .on_hover_text("Play a fixed number of matches, then stop and \
+                                                show the two models side by side: wins, damage, \
+                                                KOs, combos. Same as the server's league eval, on \
+                                                this PC. Tick Endless matches too so the bots \
+                                                rematch on their own.");
+                            ui.add_enabled(s.compare_on,
+                                egui::DragValue::new(&mut s.compare_n).range(1..=200));
+                            ui.label("matches, then compare the models");
                         }
                     }
                     if self.mode == Mode::BotVsCpu {
@@ -881,7 +910,7 @@ impl App {
         if picking {
             self.ui_team_slots(ui, running);
             if auto {
-                ui.label(egui::RichText::new("Endless: these two teams every match. Open the                           2-player vs character select, then Start.").color(ORANGE));
+                ui.label(egui::RichText::new("Endless: these two teams every match. Open the 2-player vs character select, then Start.").color(ORANGE));
             }
             ui.add_space(4.0);
         } else if self.mode == Mode::OnlineLobby {
@@ -903,7 +932,7 @@ impl App {
                           team in the lobby yourself; the bot plays match after match.");
             }
         } else if auto {
-            ui.label("Endless mode: open the 2-player vs character select, then Start.                       Both bots pick random teams (Teams: Pick for me = the same teams every match) and rematch forever - every match is recorded                       and added to Statistics. Stop whenever you like.");
+            ui.label("Endless mode: open the 2-player vs character select, then Start. Both bots pick random teams (Teams: Pick for me = the same teams every match) and rematch forever - every match is recorded and added to Statistics. Stop whenever you like.");
         } else if self.source == TeamSource::Random && self.mode != Mode::Record {
             ui.label("Open character select with the bot's cursor on the start fighter, then \
                       Start - the bot picks a random team and plays. After each match, go \
@@ -958,6 +987,10 @@ impl App {
         });
         ui.separator();
 
+        if self.mode == Mode::BotVsBot {
+            self.ui_compare_card(ui);
+        }
+
         if picking {
             let h = (ui.available_height() * 0.55).max(180.0);
             egui::ScrollArea::vertical().id_salt("roster").max_height(h).show(ui, |ui| {
@@ -965,6 +998,81 @@ impl App {
             });
             ui.separator();
         }
+    }
+
+    /// Re-reads the last comparison when stats/compare.jsonl changes.
+    fn load_compare(&mut self) {
+        let path = self.dir().join("stats").join("compare.jsonl");
+        let mtime = std::fs::metadata(&path).and_then(|m| m.modified()).ok();
+        if mtime.is_none() {
+            self.compare = None;
+            return;
+        }
+        if self.compare.as_ref().map(|c| c.0) == Some(mtime) {
+            return;
+        }
+        let last = std::fs::read_to_string(&path).ok().and_then(|t| {
+            t.lines().rev().find(|l| !l.trim().is_empty())
+                .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        });
+        self.compare = last.map(|v| (mtime, v));
+    }
+
+    /// Side-by-side result of the last "N matches, then compare" run.
+    fn ui_compare_card(&mut self, ui: &mut egui::Ui) {
+        let Some((_, c)) = &self.compare else { return };
+        let (a, b) = (c["a"].as_str().unwrap_or("?"), c["b"].as_str().unwrap_or("?"));
+        let (sa, sb) = (&c["models"][a], &c["models"][b]);
+        let name = |m: &str| Path::new(m).file_stem()
+            .map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| m.to_string());
+        let when = c["t"].as_f64().map(|t| {
+            let ago = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(t) - t;
+            if ago < 3600.0 { format!("{:.0} min ago", ago / 60.0) }
+            else if ago < 86400.0 { format!("{:.0} h ago", ago / 3600.0) }
+            else { format!("{:.0} days ago", ago / 86400.0) }
+        }).unwrap_or_default();
+        let title = format!("Last comparison: {} matches, {when}", c["matches"].as_u64().unwrap_or(0));
+        theme::titled_card(ui, &title, |ui| {
+            let (wa, wb) = (sa["wins"].as_u64().unwrap_or(0), sb["wins"].as_u64().unwrap_or(0));
+            let p = c["p"].as_f64().unwrap_or(1.0);
+            let col = if p < 0.05 { if wa > wb { theme::GOOD } else { theme::BAD } } else { theme::WARN };
+            ui.label(egui::RichText::new(c["verdict"].as_str().unwrap_or("")).strong().color(col));
+            ui.add_space(4.0);
+            // (key, label, decimals, higher is better)
+            const ROWS: [(&str, &str, usize, bool); 9] = [
+                ("wins", "wins", 0, true), ("losses", "losses", 0, false),
+                ("damage_dealt", "damage dealt / match", 2, true),
+                ("damage_taken", "damage taken / match", 2, false),
+                ("kos_dealt", "KOs dealt / match", 2, true),
+                ("hp_left", "health left / match", 2, true),
+                ("combos", "combos / match", 2, true),
+                ("max_hits", "longest combo (avg)", 1, true),
+                ("change_combos", "change combos / match", 2, true),
+            ];
+            egui::Grid::new("compare_grid").striped(true).num_columns(3)
+                .spacing([24.0, 4.0]).show(ui, |ui| {
+                ui.label("");
+                ui.label(egui::RichText::new(format!("{} (A)", name(a))).strong());
+                ui.label(egui::RichText::new(format!("{} (B)", name(b))).strong());
+                ui.end_row();
+                for (k, label, dp, up) in ROWS {
+                    let (va, vb) = (sa[k].as_f64(), sb[k].as_f64());
+                    ui.label(egui::RichText::new(label).color(theme::MUTED));
+                    for (v, o) in [(va, vb), (vb, va)] {
+                        let text = v.map(|x| format!("{x:.dp$}")).unwrap_or_else(|| "-".into());
+                        let better = matches!((v, o), (Some(x), Some(y)) if (x > y) == up && x != y);
+                        ui.label(if better {
+                            egui::RichText::new(text).strong().color(theme::GOOD)
+                        } else {
+                            egui::RichText::new(text)
+                        });
+                    }
+                    ui.end_row();
+                }
+            });
+        });
+        ui.add_space(6.0);
     }
 
     fn ui_team_slots(&mut self, ui: &mut egui::Ui, running: bool) {
@@ -1212,7 +1320,7 @@ impl App {
         if s.combo_matches > 0 {
             let avg = if s.combos > 0.0 { s.combo_hits / s.combos } else { 0.0 };
             ui.label(egui::RichText::new(format!(
-                "combos (game rule: hits never stopped): {:.1} per match · average {:.1} hits ·                  best {} hits · 2-fighter chains {:.0} · 3-fighter chains {:.0} · Plus Ultra finishers {:.0}",
+                "combos (game rule: hits never stopped): {:.1} per match · average {:.1} hits · best {} hits · 2-fighter chains {:.0} · 3-fighter chains {:.0} · Plus Ultra finishers {:.0}",
                 s.combos / s.combo_matches as f64, avg, s.combo_best as i64,
                 s.chains_2, s.chains_3, s.pu_finishers)).color(ORANGE));
         }
@@ -1768,6 +1876,7 @@ impl eframe::App for App {
         self.ensure_icons(ctx);
         if self.last_refresh.elapsed() > Duration::from_secs(3) {
             self.stats.refresh(&self.dir());
+            self.load_compare();
             self.last_refresh = Instant::now();
         }
         if let Some(r) = self.runner.as_mut() {
