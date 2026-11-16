@@ -135,6 +135,34 @@ do
   end
 end
 
+-- The montage playing: every animation.Play* call naming one
+-- ("EPl24MirioAnimationId::at002_Attack1_2") sets `mont` and restarts
+-- `mont_n` (sampler runs since). The combo trainer times a string's next
+-- press from the game's own windows in that montage (ajbot/movewindows.py).
+-- Same stale-wrapper guard as above, per function.
+A.mont_n = (A.mont_n or 0) + 1
+do
+  local anim = rawget(_G, 'animation')
+  if type(anim) == 'table' then
+    A.mw = A.mw or {}
+    for fname, fn in pairs(anim) do
+      if type(fn) == 'function' and type(fname) == 'string' and fname:sub(1, 4) == 'Play'
+         and fn ~= A.mw[fname] then
+        local orig = fn
+        local w = function(a, ...)
+          if type(a) == 'string' then
+            local m = a:match('AnimationId::([%w_]+)')
+            if m then A.mont = m A.mont_n = 0 end
+          end
+          return orig(a, ...)
+        end
+        anim[fname] = w
+        A.mw[fname] = w
+      end
+    end
+  end
+end
+
 -- Discovers projectile names we do not have mapped (see the PROJ lookup
 -- below): a pure pass-through wrap on Projectile.GetOwnedProjectileCount /
 -- CheckOwned / CheckDeadOwned that logs every string name any character's
@@ -329,6 +357,8 @@ put('idsrc',  idsrc)
 if idsrc then put('anim', A.anim) end
 put('act',    A.cur)
 put('act_n',  A.since)
+put('mont',   A.mont)
+put('mont_n', A.mont_n)
 put('ev_guard', ev('Guard', 'AirGuard'))
 put('ev_gok',   ev('OnGuardSuccess', 'OnAirGuardSuccess'))
 put('ev_jg',    ev('JustGuard'))
