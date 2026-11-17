@@ -49,7 +49,7 @@ If a game update changes the code, the mod checks the bytes first. It then patch
 | Intel i7-9700K, no mod, vs AMD Ryzen AI MAX+ 395 (Zen 5) | desync about 6 s after Nana's Plus Ultra, every time |
 | Same PCs, Intel with `ajfpfix` | 3 of 3 matches to victory, every frame identical, Plus Ultras and PU combos included |
 | AMD vs AMD, mod forced on one side | full match, identical (the mod's math matches AMD exactly) |
-| `ajfpfix_intelmath.asi` | lookup = i7-9700K on all 4 billion inputs; same stubs as `ajfpfix.asi` with other table bytes. **Not yet played in an online match.** |
+| AMD with `ajfpfix_intelmath.asi` vs Intel i7-9700K, no mod | 2 of 2 matches to victory, every frame identical, two Nana Plus Ultras included |
 
 Not tested yet:
 - **Older AMD CPUs (Zen 1–4)** and **other Intel generations:** the tables come from one CPU of each brand. If another
