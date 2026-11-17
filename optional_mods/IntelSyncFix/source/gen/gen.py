@@ -1,7 +1,7 @@
 """gen.py: build the ajfpfix stub blob + site patch list from sites.json.
 
 Each rcp/rsqrt site (plus whole following instructions until >= 5 bytes) is replaced by `jmp stub` (+ nops).
-The stub runs the AMD-table emulation for the rcp/rsqrt instruction, replays the displaced instructions
+The stub runs the table emulation (tables/amd by default, AJ_TABLES picks another) for the rcp/rsqrt instruction, replays the displaced instructions
 (as reassembled from objdump text, RIP-relative operands and branch targets as absolute symbols), and jumps back.
 The blob is linked to sit at IMAGE_BASE + BLOB_RVA, so every distance is fixed no matter where the exe loads.
 Outputs: blob.bin, patches.bin (records: rva u32, len u8, orig[len], patch[len]), gen_report.txt.
@@ -141,7 +141,7 @@ def main():
         recs.append((s['addr'], total, [u['t'] for u in used]))
     open('abs.ld', 'w').write(''.join(f'{sym} = {val:#x};\n' for sym, val in sorted(absyms.items())))
     open('blob.s', 'w').write('\n'.join(asm) + '\n')
-    r = subprocess.run(['as', '--64', '-o', 'blob.o', 'blob.s'], capture_output=True, text=True)
+    r = subprocess.run(['as', '--64', '-I', os.environ.get('AJ_TABLES', 'tables/amd'), '-o', 'blob.o', 'blob.s'], capture_output=True, text=True)
     if r.returncode:
         print(r.stderr[:3000]); sys.exit(1)
     subprocess.run(['ld', '-o', 'blob.elf', f'-Ttext={BLOB:#x}', '-e', '_start', 'blob.o', 'abs.ld'], check=True)

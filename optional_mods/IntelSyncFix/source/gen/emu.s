@@ -1,4 +1,4 @@
-# emu.s: AMD Zen rcpps/rsqrtps per lane. in %eax, out %eax; clobbers %ecx %edx %r8 and flags.
+# emu.s: table-driven rcpps/rsqrtps per lane (tables/amd or tables/intel, picked by gen.py). in %eax, out %eax; clobbers %ecx %edx %r8 and flags.
 	.text
 	.globl emu_rcp, emu_rsq, T_RCP, T_RSQ
 emu_rcp:
@@ -30,5 +30,5 @@ emu_rsq:
 5:	or $0x400000,%eax; ret
 4:	mov $0xffc00000,%eax; ret
 	.balign 16
-T_RCP:	.incbin "amd_rcp4096.bin"
-T_RSQ:	.incbin "amd_rsqrt8192.bin"
+T_RCP:	.incbin "rcp4096.bin"
+T_RSQ:	.incbin "rsqrt8192.bin"

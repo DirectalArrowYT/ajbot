@@ -9,6 +9,9 @@ crate-type = ["cdylib"]
 [dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_SystemServices", "Win32_System_Diagnostics_Debug", "Win32_System_Threading"] }
 
+[features]
+intel_math = []
+
 [profile.release]
 opt-level = 2
 lto = true

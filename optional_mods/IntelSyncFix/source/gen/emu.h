@@ -1,4 +1,4 @@
-// emu.h: AMD (Zen 5) rcpps/rsqrtps per-lane results from 4096/8192-entry tables (inputs [1,2) and [1,4)).
+// emu.h: rcpps/rsqrtps per-lane results from 4096/8192-entry tables (inputs [1,2) and [1,4)); AMD Zen 5 or Intel tables.
 #include <stdint.h>
 static uint32_t T_RCP[4096], T_RSQ[8192];
 static inline uint32_t emu_rcp(uint32_t x){

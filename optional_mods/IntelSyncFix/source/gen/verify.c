@@ -1,11 +1,11 @@
-// verify.c: compare emu.h against this CPU's rcpps/rsqrtps over every 32-bit input.
+// verify.c: compare emu.h against this CPU over every 32-bit input. Run it inside tables/amd or tables/intel (reads rcp4096.bin, rsqrt8192.bin).
 #include <immintrin.h>
 #include <stdio.h>
 #include <string.h>
 #include "emu.h"
 int main(){
-  FILE*f=fopen("amd_rcp4096.bin","rb"); fread(T_RCP,4,4096,f); fclose(f);
-  f=fopen("amd_rsqrt8192.bin","rb"); fread(T_RSQ,4,8192,f); fclose(f);
+  FILE*f=fopen("rcp4096.bin","rb"); fread(T_RCP,4,4096,f); fclose(f);
+  f=fopen("rsqrt8192.bin","rb"); fread(T_RSQ,4,8192,f); fclose(f);
   unsigned long br=0,bs=0; uint32_t fr=0,fs=0;
   for(uint64_t x=0;x<(1ull<<32);x+=4){
     __m128i v=_mm_add_epi32(_mm_set1_epi32((uint32_t)x),_mm_setr_epi32(0,1,2,3));

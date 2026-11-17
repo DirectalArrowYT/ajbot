@@ -1,11 +1,12 @@
-//! ajfpfix: make an Intel PC compute rcpps/rsqrtps (and ss/VEX forms) exactly like AMD Zen.
+//! ajfpfix: make one CPU brand compute rcpps/rsqrtps (and ss/VEX forms) exactly like the other.
+//! Default build (ajfpfix.asi): Intel PCs compute like AMD Zen. Feature `intel_math` (ajfpfix_intelmath.asi):
+//! AMD/other PCs compute like Intel. In one match only ONE side may use a mod, never both.
 //!
 //! All's Justice's physics uses the hardware reciprocal / reciprocal-sqrt approximations. Intel and AMD
 //! give different low bits for about half of all inputs, so an Intel and an AMD player drift apart after
 //! big knockback (seen with Nana's Plus Ultra) and get kicked. AMD vs AMD stays bit-identical.
 //! This mod maps a stub blob right after the exe image and rewrites every rcp/rsqrt site into a jmp to a
 //! stub that looks the result up in AMD's own tables (dumped from a Zen 5 CPU, exhaustively verified).
-//! Install on Intel PCs only; AMD players need nothing.
 use std::ffi::c_void;
 use std::io::Write;
 use windows_sys::Win32::Foundation::{BOOL, HMODULE};
@@ -18,7 +19,14 @@ use windows_sys::Win32::System::Memory::{
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 const BLOB_RVA: usize = 0xb32_0000;
+#[cfg(not(feature = "intel_math"))]
 static BLOB: &[u8] = include_bytes!("blob.bin");
+#[cfg(feature = "intel_math")]
+static BLOB: &[u8] = include_bytes!("blob_intel.bin");
+#[cfg(not(feature = "intel_math"))]
+const NAME: &str = "ajfpfix";
+#[cfg(feature = "intel_math")]
+const NAME: &str = "ajfpfix_intelmath";
 static PATCHES: &[u8] = include_bytes!("patches.bin");
 
 fn log(s: &str) {
@@ -27,7 +35,7 @@ fn log(s: &str) {
         let n = GetModuleFileNameW(std::ptr::null_mut(), buf.as_mut_ptr(), buf.len() as u32) as usize;
         let exe = std::path::PathBuf::from(String::from_utf16_lossy(&buf[..n]));
         if let Some(dir) = exe.parent() {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("ajfpfix.log")) {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join(format!("{NAME}.log"))) {
                 let _ = writeln!(f, "{s}");
             }
         }
@@ -35,6 +43,7 @@ fn log(s: &str) {
 }
 
 fn is_intel() -> bool {
+    #[allow(unused_unsafe)]
     let r = unsafe { std::arch::x86_64::__cpuid(0) };
     &r.ebx.to_le_bytes() == b"Genu" && &r.edx.to_le_bytes() == b"ineI" && &r.ecx.to_le_bytes() == b"ntel"
 }
@@ -44,7 +53,7 @@ fn force_file() -> bool {
         let mut buf = [0u16; 1024];
         let n = GetModuleFileNameW(std::ptr::null_mut(), buf.as_mut_ptr(), buf.len() as u32) as usize;
         let exe = std::path::PathBuf::from(String::from_utf16_lossy(&buf[..n]));
-        exe.parent().map_or(false, |d| d.join("ajfpfix.force").exists())
+        exe.parent().map_or(false, |d| d.join(format!("{NAME}.force")).exists())
     }
 }
 
@@ -65,8 +74,10 @@ fn records() -> Vec<Rec> {
 }
 
 unsafe fn apply() -> Result<String, String> {
-    if !is_intel() && std::env::var_os("AJFPFIX_FORCE").is_none() && !force_file() {
-        return Ok("not an Intel CPU: nothing to do".into());
+    let wanted = if cfg!(feature = "intel_math") { !is_intel() } else { is_intel() };
+    if !wanted && std::env::var_os("AJFPFIX_FORCE").is_none() && !force_file() {
+        return Ok(if cfg!(feature = "intel_math") { "Intel CPU already computes the Intel way: nothing to do" }
+                  else { "not an Intel CPU: nothing to do" }.into());
     }
     let base = GetModuleHandleW(std::ptr::null()) as usize;
     if base == 0 { return Err("no exe module".into()); }
@@ -96,14 +107,15 @@ unsafe fn apply() -> Result<String, String> {
         VirtualProtect(site as *const c_void, r.patch.len(), old, &mut old);
         FlushInstructionCache(GetCurrentProcess(), site as *const c_void, r.patch.len());
     }
-    Ok(format!("patched {} rcp/rsqrt sites to AMD tables, stubs at {want:#x}", recs.len()))
+    let t = if cfg!(feature = "intel_math") { "Intel" } else { "AMD" };
+    Ok(format!("patched {} rcp/rsqrt sites to {t} tables, stubs at {want:#x}", recs.len()))
 }
 
 #[no_mangle]
 pub extern "system" fn DllMain(_h: HMODULE, reason: u32, _r: *mut c_void) -> BOOL {
     if reason == 1 {
         let r = unsafe { apply() };
-        log(&match r { Ok(m) => format!("ajfpfix: {m}"), Err(e) => format!("ajfpfix: NOT applied: {e}") });
+        log(&match r { Ok(m) => format!("{NAME}: {m}"), Err(e) => format!("{NAME}: NOT applied: {e}") });
     }
     1
 }
