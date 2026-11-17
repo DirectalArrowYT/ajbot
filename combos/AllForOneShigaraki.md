@@ -20,6 +20,6 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `CA > Q1 > Dash > Dash > Dash > CA` | 119% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `AA > CA` | From the game's own CPU combo list. | game-cpu | 3/4 (bot, 2026-11-16) |
+| `AA > PU` | From the game's own CPU combo list. | game-cpu | 3/40 (bot, 2026-11-16) |
+| `CA > Q1 > Dash > Dash > Dash > CA` | 119% damage; Found in recordings: landed 1 time(s). | ml | 5/20 (bot, 2026-11-16) |

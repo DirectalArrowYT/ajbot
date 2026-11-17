@@ -20,8 +20,8 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAA > Q1 > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > Q2 > A > CA` | 38% damage; Found in recordings: landed 2 time(s). | ml |  |
+| `AAAA > PU` | From the game's own CPU combo list. | game-cpu | 4/40 (bot, 2026-11-16) |
+| `AAAA > Q2` | From the game's own CPU combo list. | game-cpu | 3/4 (bot, 2026-11-16) |
+| `AAAAA > Q2` | From the game's own CPU combo list. | game-cpu | 7/40 (bot, 2026-11-16) |
+| `AAAA > Q1 > Q1` | From the game's own CPU combo list. | game-cpu | 0/37 (bot, 2026-11-16) |
+| `AAA > Q2 > A > CA` | 38% damage; Found in recordings: landed 2 time(s). | ml | 2/40 (bot, 2026-11-16) |

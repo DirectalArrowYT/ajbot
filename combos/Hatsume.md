@@ -20,11 +20,11 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > TQ1 > A` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
+| `AAA` | From the game's own CPU combo list. | game-cpu | 1/40 (bot, 2026-11-16) |
+| `AA > PU` | From the game's own CPU combo list. | game-cpu | 1/40 (bot, 2026-11-16) |
+| `AA > Q1` | From the game's own CPU combo list. | game-cpu | 5/8 (bot, 2026-11-16) |
+| `AA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 4/7 (bot, 2026-11-16) |
+| `AA > TQ1 > A` | From the game's own CPU combo list. | game-cpu | 3/20 (bot, 2026-11-16) |
+| `UB > AA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > Q1` | From the game's own CPU combo list. | game-cpu | 3/19 (bot, 2026-11-16) |
+| `UB > AA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 3/24 (bot, 2026-11-16) |

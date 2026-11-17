@@ -20,24 +20,24 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `Q1 > AAAA` | From the game's own CPU combo list. | game-cpu |  |
-| `Q1 > Q1 > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > AAAA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1 > AAAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `Q2 > Dodge > Dash > AA > Q1 > Q2 > TQ2 > Jump > CA > Dodge > AA > CA` | 41% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `AAA > PU` | From the game's own CPU combo list. | game-cpu | 0/35 (bot, 2026-11-16) |
+| `AAA > Q2` | From the game's own CPU combo list. | game-cpu | 13/29 (bot, 2026-11-16) |
+| `AAAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `Q1 > AAAA` | From the game's own CPU combo list. | game-cpu | 5/11 (bot, 2026-11-16) |
+| `Q1 > Q1 > Q1` | From the game's own CPU combo list. | game-cpu | 3/18 (bot, 2026-11-16) |
+| `AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu | 3/7 (bot, 2026-11-16) |
+| `AA > Q1 > AAAA` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AAAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 3/24 (bot, 2026-11-16) |
+| `UB > AA > Q1 > AAAA` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > Q1 > AAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > Q1 > AAA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > Q1 > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `Q2 > Dodge > Dash > AA > Q1 > Q2 > TQ2 > Jump > CA > Dodge > AA > CA` | 41% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |
 | **Bakugo Rising: TQ2 into Extreme Action into Plus Ultra**<br>`A > TQ1 > Dodge > A > TQ1 > Jump > AAAA > GC > TQ1 > Dash > AAAA > GC > TQ1 > TQ2 > A > EA > PU` | needs Rising; Draft from data, not from the player: Extreme Action (RB+A) cancels out of TQ2 (seen in runs/1790304052.jsonl) and Plus Ultra is in its cancel list (AM_AttackExtremeAction). | draft |  |
-| **Bakugo cancel route into Plus Ultra**<br>`A > TQ1 > Dodge > A > TQ1 > Jump > AAAA > GC > TQ1 > Dash > AAAA > GC > TQ1 > TQ2 > A > PU` | Notation: A=jab (Melee), CA=CounterAttack, TQ1/Q3=ExUnique1 (tilt+Y), TQ2/Q4=ExUnique2 (tilt+B), PU=PlusUltra1; Dodge/Jump/Dash are the cancels. TQ2 follow-ups by controller button: X blast/jab (ExUnique2FollowX, used here), Y unblockable, A armor jump-like, B roll (needs a stick direction). Follow-ups register 0.1-0.4 s after TQ2 starts. | draft |  |
+| **Bakugo cancel route into Plus Ultra**<br>`A > TQ1 > Dodge > A > TQ1 > Jump > AAAA > GC > TQ1 > Dash > AAAA > GC > TQ1 > TQ2 > A > PU` | Notation: A=jab (Melee), CA=CounterAttack, TQ1/Q3=ExUnique1 (tilt+Y), TQ2/Q4=ExUnique2 (tilt+B), PU=PlusUltra1; Dodge/Jump/Dash are the cancels. TQ2 follow-ups by controller button: X blast/jab (ExUnique2FollowX, used here), Y unblockable, A armor jump-like, B roll (needs a stick direction). Follow-ups register 0.1-0.4 s after TQ2 starts. | draft | 0/40 (bot, 2026-11-16) |

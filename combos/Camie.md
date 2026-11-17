@@ -20,10 +20,10 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `A > Q1 > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q2 > Q2` | 22% damage; Found in recordings: landed 2 time(s). | ml |  |
-| `Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `A > Q1 > A > Q2` | 29% damage; Found in recordings: landed 2 time(s). | ml |  |
-| `AA > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `A > CA > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu |  |
+| `AA > PU` | From the game's own CPU combo list. | game-cpu | 4/40 (bot, 2026-11-16) |
+| `A > Q1 > Q1` | From the game's own CPU combo list. | game-cpu | 3/7 (bot, 2026-11-16) |
+| `AA > Q2 > Q2` | 22% damage; Found in recordings: landed 2 time(s). | ml | 7/11 (bot, 2026-11-16) |
+| `Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu | 3/4 (bot, 2026-11-16) |
+| `A > Q1 > A > Q2` | 29% damage; Found in recordings: landed 2 time(s). | ml | 4/17 (bot, 2026-11-16) |
+| `AA > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu | 3/6 (bot, 2026-11-16) |
+| `A > CA > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu | 3/24 (bot, 2026-11-16) |

@@ -20,13 +20,13 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > TQ2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > TQ2` | From the game's own CPU combo list. | game-cpu |  |
-| `A > CA > TQ2 > Dash > Q1 > AA > CA > Dodge > Dodge > AA > CA` | 52% damage; Found in recordings: landed 1 time(s). | ml |  |
-| `Q1 > CA > Dash > TQ2 > Q2 > Dash > Dash > Dash > Dodge > Dash > Dash > TQ1 > Q1` | 85% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `AAA` | From the game's own CPU combo list. | game-cpu | 5/8 (bot, 2026-11-16) |
+| `AA > CA` | From the game's own CPU combo list. | game-cpu | 3/3 (bot, 2026-11-16) |
+| `AA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > TQ2` | From the game's own CPU combo list. | game-cpu | 3/7 (bot, 2026-11-16) |
+| `UB > AAA` | From the game's own CPU combo list. | game-cpu | 3/8 (bot, 2026-11-16) |
+| `UB > AA > CA` | From the game's own CPU combo list. | game-cpu | 3/7 (bot, 2026-11-16) |
+| `UB > AA > PU` | From the game's own CPU combo list. | game-cpu | 4/40 (bot, 2026-11-16) |
+| `UB > AA > TQ2` | From the game's own CPU combo list. | game-cpu | 3/9 (bot, 2026-11-16) |
+| `A > CA > TQ2 > Dash > Q1 > AA > CA > Dodge > Dodge > AA > CA` | 52% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |
+| `Q1 > CA > Dash > TQ2 > Q2 > Dash > Dash > Dash > Dodge > Dash > Dash > TQ1 > Q1` | 85% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |

@@ -20,16 +20,16 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > TQ2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `A > CA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `A > CA > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > TQ2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA > CA > AAA > CA` | 41% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `AAA` | From the game's own CPU combo list. | game-cpu | 8/27 (bot, 2026-11-16) |
+| `AA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > Q2` | From the game's own CPU combo list. | game-cpu | 5/12 (bot, 2026-11-16) |
+| `AA > TQ2` | From the game's own CPU combo list. | game-cpu | 7/16 (bot, 2026-11-16) |
+| `UB > AAA` | From the game's own CPU combo list. | game-cpu | 3/9 (bot, 2026-11-16) |
+| `A > CA > PU` | From the game's own CPU combo list. | game-cpu | 0/35 (bot, 2026-11-16) |
+| `A > CA > Q1` | From the game's own CPU combo list. | game-cpu | 5/40 (bot, 2026-11-16) |
+| `AA > CA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > CA > Q1` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > TQ2` | From the game's own CPU combo list. | game-cpu | 3/6 (bot, 2026-11-16) |
+| `UB > AA > CA > PU` | From the game's own CPU combo list. | game-cpu | 2/40 (bot, 2026-11-16) |
+| `UB > AA > CA > Q1` | From the game's own CPU combo list. | game-cpu | 3/6 (bot, 2026-11-16) |
+| `UB > AAA > CA > AAA > CA` | 41% damage; Found in recordings: landed 1 time(s). | ml | 5/27 (bot, 2026-11-16) |

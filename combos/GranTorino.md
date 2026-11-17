@@ -20,14 +20,14 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > CA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AAA > Q1 > Q1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA > Q2` | From the game's own CPU combo list. | game-cpu |  |
+| `AAA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AAA > Q2` | From the game's own CPU combo list. | game-cpu | 3/13 (bot, 2026-11-16) |
+| `UB > AAAA` | From the game's own CPU combo list. | game-cpu | 3/30 (bot, 2026-11-16) |
+| `AAA > CA > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AAA > Q1 > Q1` | From the game's own CPU combo list. | game-cpu | 2/40 (bot, 2026-11-16) |
+| `UB > AAA > PU` | From the game's own CPU combo list. | game-cpu | 1/40 (bot, 2026-11-16) |
+| `UB > AAA > Q2` | From the game's own CPU combo list. | game-cpu | 5/15 (bot, 2026-11-16) |
 | `UB > AAA > CA > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `A > CA > TQ2 > Q2 > Dash > Q1 > Q2 > Dodge > TQ2 > Q2 > Dodge > CA > Dash > Dodge > TQ2` | 47% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `UB > AAA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `A > CA > TQ2 > Q2 > Dash > Q1 > Q2 > Dodge > TQ2 > Q2 > Dodge > CA > Dash > Dodge > TQ2` | 47% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |

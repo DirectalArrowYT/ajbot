@@ -20,13 +20,13 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AA > TQ1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > A > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > A > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > A > TQ1` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > A > TQ2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > TQ1` | From the game's own CPU combo list. | game-cpu |  |
-| `A > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > A > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `CA > Dash > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA` | 46% damage; Found in recordings: landed 1 time(s). | ml |  |
-| `CA > Dash > A > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA` | 50% damage; Found in recordings: landed 1 time(s). | ml |  |
+| `AA > TQ1` | From the game's own CPU combo list. | game-cpu | 3/13 (bot, 2026-11-16) |
+| `UB > A > CA` | From the game's own CPU combo list. | game-cpu | 5/21 (bot, 2026-11-16) |
+| `UB > A > PU` | From the game's own CPU combo list. | game-cpu | 1/40 (bot, 2026-11-16) |
+| `UB > A > TQ1` | From the game's own CPU combo list. | game-cpu | 3/19 (bot, 2026-11-16) |
+| `UB > A > TQ2` | From the game's own CPU combo list. | game-cpu | 3/19 (bot, 2026-11-16) |
+| `UB > AA > TQ1` | From the game's own CPU combo list. | game-cpu | 3/29 (bot, 2026-11-16) |
+| `A > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > A > Q2 > Q2 > Q2` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `CA > Dash > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA` | 46% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |
+| `CA > Dash > A > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA > Q2 > CA` | 50% damage; Found in recordings: landed 1 time(s). | ml | 0/40 (bot, 2026-11-16) |

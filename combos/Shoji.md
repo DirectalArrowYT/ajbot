@@ -20,28 +20,28 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAAAAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AAA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `CA > CA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `CA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > Q1 > TQ2` | 27% damage; Found in recordings: landed 3 time(s). | ml |  |
-| `AA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > Q1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > Q1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > CA > Q2` | From the game's own CPU combo list. | game-cpu |  |
-| `AA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `AAAAA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
-| `UB > AA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu |  |
+| `AAAAAA` | From the game's own CPU combo list. | game-cpu | 5/24 (bot, 2026-11-16) |
+| `AA > Q2` | From the game's own CPU combo list. | game-cpu | 3/3 (bot, 2026-11-16) |
+| `UB > AAA` | From the game's own CPU combo list. | game-cpu | 3/3 (bot, 2026-11-16) |
+| `AA > Q1 > PU` | From the game's own CPU combo list. | game-cpu | 10/40 (bot, 2026-11-16) |
+| `CA > CA > CA` | From the game's own CPU combo list. | game-cpu | 8/12 (bot, 2026-11-16) |
+| `CA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 3/5 (bot, 2026-11-16) |
+| `UB > AA > Q2` | From the game's own CPU combo list. | game-cpu | 3/3 (bot, 2026-11-16) |
+| `AA > Q1 > TQ2` | 27% damage; Found in recordings: landed 3 time(s). | ml | 3/18 (bot, 2026-11-16) |
+| `AA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu | 6/40 (bot, 2026-11-16) |
+| `AA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 3/40 (bot, 2026-11-16) |
+| `AAAAA > Q1 > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AAAAA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AAAAA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `AA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu | 0/38 (bot, 2026-11-16) |
+| `AA > CA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 1/40 (bot, 2026-11-16) |
+| `UB > AA > Q1 > PU` | From the game's own CPU combo list. | game-cpu | 11/40 (bot, 2026-11-16) |
+| `CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 4/40 (bot, 2026-11-16) |
+| `UB > AA > TQ1 > PU` | From the game's own CPU combo list. | game-cpu | 8/40 (bot, 2026-11-16) |
+| `UB > AA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 6/40 (bot, 2026-11-16) |
+| `AAAAA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > CA > CA > CA` | From the game's own CPU combo list. | game-cpu | 0/38 (bot, 2026-11-16) |
+| `UB > AA > CA > CA > Q2` | From the game's own CPU combo list. | game-cpu | 0/39 (bot, 2026-11-16) |
+| `AA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 0/38 (bot, 2026-11-16) |
+| `AAAAA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 0/40 (bot, 2026-11-16) |
+| `UB > AA > CA > CA > TQ2 > PU` | From the game's own CPU combo list. | game-cpu | 0/39 (bot, 2026-11-16) |

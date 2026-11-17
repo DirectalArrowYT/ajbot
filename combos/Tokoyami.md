@@ -20,4 +20,4 @@ _Not proven yet: the game's own CPU combo lists, routes the bot found in recordi
 
 | Combo | Notes | Source | Tested |
 |---|---|---|---|
-| `AAAA` | From the game's own CPU combo list. | game-cpu |  |
+| `AAAA` | From the game's own CPU combo list. | game-cpu | 5/6 (bot, 2026-11-16) |
