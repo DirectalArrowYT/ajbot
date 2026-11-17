@@ -432,6 +432,13 @@ class Agent:
         self._stuck = {}              # per fighter, see _unstick
         self.frames = FrameTracker()
         self._opp = {}                # our side -> oppmodel.OpponentModel
+        # Route-progress features (dataset.feature_book, frozen at training):
+        # older policies carry no book and get zeros (then drop the block).
+        from .routefeat import Index
+        book = p.get("route_book")
+        self.route_index = Index(book) if book else None
+        self._route = {}              # our side -> routefeat.RouteTrack
+        self._wall = {}               # our side -> wallfeat.WallTrack
         self._serialize()
 
     def _serialize(self):
@@ -520,11 +527,19 @@ class Agent:
         from .oppmodel import OpponentModel
         om = self._opp.setdefault(1 if me.get("enemy") else 0, OpponentModel())
         om.update(me, teams.get("enemy") or {}, clock.now())
+        from .routefeat import RouteTrack
+        rt = self._route.setdefault(1 if me.get("enemy") else 0, RouteTrack(self.route_index))
+        rt.observe(me, en0, clock.now())
+        rf = rt.feats(me)
+        from .wallfeat import WallTrack
+        wt = self._wall.setdefault(1 if me.get("enemy") else 0, WallTrack())
+        wt.observe(me, en0, clock.now())
+        wf = wt.feats()
         x = D.featurize(tick, self.actions, self.chars, prev,
-                        list(hist_buf), om.feats()).reshape(1, -1)
+                        list(hist_buf), om.feats(), rf, wf).reshape(1, -1)
         x = self._fit_features(x)
         self._check_features(x)
-        lean = self._lean_probs(tick, prev, list(hist_buf), om.feats())
+        lean = self._lean_probs(tick, prev, list(hist_buf), om.feats(), rf, wf)
         hist_buf.append(tick)
 
         probs = (self.action.predict_proba(x)[0]
@@ -580,14 +595,14 @@ class Agent:
         self.frames.pushed(me, teams.get("enemy") or {}, (float(sx), float(sy)), clock.now())
         return name, (float(sx), float(sy)), teams
 
-    def _lean_probs(self, tick, prev, hist, omf):
+    def _lean_probs(self, tick, prev, hist, omf, rf=None, wf=None):
         """The lean policy's action probabilities in THIS policy's action
         order (its own vocabulary and features may differ), or None."""
         lp = self.lean
         if lp is None or self.lean_w <= 0 or not hasattr(lp.action, "predict_proba"):
             return None
         try:
-            x = D.featurize(tick, lp.actions, lp.chars, prev, hist, omf).reshape(1, -1)
+            x = D.featurize(tick, lp.actions, lp.chars, prev, hist, omf, rf, wf).reshape(1, -1)
             x = lp._fit_features(x)
             p = lp.action.predict_proba(x)[0]
         except Exception:
@@ -838,6 +853,7 @@ class Agent:
     STUCK_GAIN = 150.0
     UNSTICK_S = 1.6         # then go around (and over) for this long
     UNSTICK_ANGLE = 70.0
+    WALL_AROUND_S = 0.8     # touching a wall on the way in: go around this long
 
     def _unstick(self, key, me, en, name, stick):
         """No path finding: when pushing straight at a far opponent stops
@@ -849,6 +865,7 @@ class Agent:
         now = clock.now()
         dist = _dist(me)
         st = self._stuck.get(key)
+        detect = dist > self.STUCK_DIST
         if st is None or now - st.get("seen", now) > 1.0:
             st = self._stuck[key] = {"t0": now, "d0": dist, "side": st["side"] if st else 1.0}
         st["seen"] = now
@@ -859,6 +876,8 @@ class Agent:
                 return "Jump", stick
             # DashForward would force the stick straight back at the obstacle
             return (None if name in FORCED_STICK else name), stick
+        if not detect:
+            return None
         if dist < st["d0"] - self.STUCK_GAIN:
             st["t0"], st["d0"] = now, dist          # getting there
         elif now - st["t0"] > self.STUCK_S:
@@ -870,22 +889,38 @@ class Agent:
     ZONE_DIST = 450.0       # beyond this an attacking opponent is zoning us
     ZONE_ANGLE = 55.0       # close on a shooter at this angle, not head-on
 
-    def _off_wall(self, key, me, en, stick):
-        """Touching a wall (the arena fence): there is no position or stage
-        size to read, only IsTouchWall, so get off it - toward the opponent
-        at an angle (a corner is beside us as often as behind us), unless
-        the stick already points that way."""
-        rel = stick_rel(me, stick, en)
-        if rel is not None and abs(rel) <= 60:
-            return stick
-        st = self._pacing.setdefault(key, {})
-        side = st.get("wall_side", 1.0)
-        now = time.monotonic()
-        if now - st.get("wall_t", 0.0) > 2.0:
-            side = -side                       # a new wall contact: try the other way
-            st["wall_side"] = side
+    # Fighters whose kit wants a wall (user, 2026-11-16: Mirio's rising is
+    # stronger near one - he phases into the wall/ground there). The go-around
+    # rule leaves them alone; the wall.* inputs still let the model learn
+    # from people's matches when to stay on it.
+    WALL_USERS = frozenset({"Mirio"})
+
+    def _wall_rule(self, me, dist):
+        return (me.get("twal") and dist >= self.NEUTRAL_DIST
+                and move_char(me) not in self.WALL_USERS)
+
+    def _wall_around(self, key, me, en, name, stick, jump=True):
+        """Touching a wall while out of reach. The old answer (_off_wall)
+        kept any stick already pointing at the opponent - and that was the
+        failure: 76% of the bot's dashes at a wall (2026-11-16) pushed
+        straight at an opponent 450+ away, into whatever stood between them.
+        With no position to read, go around: UNSTICK_ANGLE off the line for
+        WALL_AROUND_S (carried on by _unstick), the same side for the whole
+        contact and the other side on a new one, and hop. (name, stick)."""
+        now = clock.now()
+        st = self._stuck.get(key)
+        if st is None:
+            st = self._stuck[key] = {"t0": now, "d0": _dist(me), "side": 1.0}
+        st["seen"] = now
+        if now - st.get("wall_t", -1e9) > 2.0:
+            st["side"] = -st.get("side", 1.0)
         st["wall_t"] = now
-        return toward(me, 40.0 * side, en=en)
+        st["until"] = max(st.get("until", 0.0), now + self.WALL_AROUND_S)
+        stick = toward(me, self.UNSTICK_ANGLE * st["side"], en=en)
+        if jump and now - st.get("jumped", 0.0) > 0.8 and "Jump" in ACTION_MAP:
+            st["jumped"] = now
+            return "Jump", stick
+        return (None if name in FORCED_STICK else name), stick
 
     def _under_fire(self, key, me, en, stick):
         """The opponent is attacking. Up close that is defence's business,
@@ -896,8 +931,8 @@ class Agent:
         if _cls(me) in OFFENCE:
             return stick
         dist = _dist(me)
-        if me.get("twal") and dist >= self.NEUTRAL_DIST:
-            return self._off_wall(key, me, en, stick)
+        if self._wall_rule(me, dist):
+            return self._wall_around(key, me, en, None, stick, jump=False)[1]
         if dist < self.ZONE_DIST:
             return stick
         rel = stick_rel(me, stick, en)
@@ -921,8 +956,8 @@ class Agent:
         if _cls(en) in OFFENCE:
             return name, self._under_fire(key, me, en, stick)
         dist = _dist(me)
-        if me.get("twal") and dist >= self.NEUTRAL_DIST and _cls(me) not in OFFENCE:
-            stick = self._off_wall(key, me, en, stick)
+        if self._wall_rule(me, dist) and _cls(me) not in OFFENCE:
+            return self._wall_around(key, me, en, name, stick)
         if dist < self.NEUTRAL_DIST:
             return name, stick
         # An attack that cannot reach from here is replaced by closing in.
@@ -958,7 +993,7 @@ class Agent:
                 name = "DashForward" if "DashForward" in ACTION_MAP else "Dash"
             else:
                 name = None
-        if dist > self.STUCK_DIST:
+        if dist > self.STUCK_DIST or clock.now() < (self._stuck.get(key) or {}).get("until", 0.0):
             going_around = self._unstick(key, me, en, name, stick)
             if going_around is not None:
                 name, stick = going_around

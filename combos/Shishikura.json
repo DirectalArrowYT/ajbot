@@ -6,35 +6,80 @@
    "tier": "hypothetical",
    "notation": "AAA",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 7,
+    "landed": 3,
+    "best_steps": 3,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "shishikura-badaa8",
    "tier": "hypothetical",
    "notation": "AA > CA",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 14,
+    "landed": 8,
+    "best_steps": 3,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "shishikura-2a34da",
    "tier": "hypothetical",
    "notation": "AA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 39,
+    "landed": 0,
+    "best_steps": 2,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "shishikura-f00711",
    "tier": "hypothetical",
    "notation": "AA > Q2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 5,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "shishikura-f0deba",
    "tier": "hypothetical",
    "notation": "AA > TQ2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 29,
+    "landed": 3,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   }
  ]
 }

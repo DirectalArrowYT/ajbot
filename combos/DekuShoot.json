@@ -6,168 +6,384 @@
    "tier": "hypothetical",
    "notation": "AAA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 6,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-0106e2",
    "tier": "hypothetical",
    "notation": "AAA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 12,
+    "landed": 5,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-f10b97",
    "tier": "hypothetical",
    "notation": "AA > CA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 3,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-51d524",
    "tier": "hypothetical",
    "notation": "UB > AA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 2,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-7ebaa5",
    "tier": "hypothetical",
    "notation": "UB > AA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 7,
+    "landed": 3,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-3cb5de",
    "tier": "hypothetical",
    "notation": "UB > AAA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 5,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-c8c727",
    "tier": "hypothetical",
    "notation": "UB > AAA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 10,
+    "landed": 5,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-c1e3e3",
    "tier": "hypothetical",
    "notation": "AAA > TQ2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 8,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-949f08",
    "tier": "hypothetical",
    "notation": "AA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 10,
+    "landed": 5,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-b017e1",
    "tier": "hypothetical",
    "notation": "CA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 3,
+    "landed": 3,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-dc5d27",
    "tier": "hypothetical",
    "notation": "UB > AA > CA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 13,
+    "landed": 5,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-639aad",
    "tier": "hypothetical",
    "notation": "AA > CA > TQ2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-1505e8",
    "tier": "hypothetical",
    "notation": "AAA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 7,
+    "landed": 3,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-6f513e",
    "tier": "hypothetical",
    "notation": "UB > AAA > TQ2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 15,
+    "landed": 6,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-2dcdaa",
    "tier": "hypothetical",
    "notation": "AA > CA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 3,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-32d9d2",
    "tier": "hypothetical",
    "notation": "UB > AA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 7,
+    "landed": 3,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-d24a92",
    "tier": "hypothetical",
    "notation": "CA > TQ2 > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 3,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-a9754e",
    "tier": "hypothetical",
    "notation": "UB > AA > CA > TQ2 > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 11,
+    "landed": 4,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-964fc1",
    "tier": "hypothetical",
    "notation": "UB > AAA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 7,
+    "landed": 3,
+    "best_steps": 7,
+    "steps": 7,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-38c286",
    "tier": "hypothetical",
    "notation": "AAA > TQ2 > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 10,
+    "landed": 5,
+    "best_steps": 7,
+    "steps": 7,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-078f01",
    "tier": "hypothetical",
    "notation": "UB > AA > CA > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 11,
+    "landed": 3,
+    "best_steps": 7,
+    "steps": 7,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-c42123",
    "tier": "hypothetical",
    "notation": "AA > CA > TQ2 > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 3,
+    "best_steps": 7,
+    "steps": 7,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-1dda7d",
    "tier": "hypothetical",
    "notation": "UB > AAA > TQ2 > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 10,
+    "landed": 5,
+    "best_steps": 8,
+    "steps": 8,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "dekushoot-8c66fc",
    "tier": "hypothetical",
    "notation": "UB > AA > CA > TQ2 > Q2 > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 13,
+    "landed": 4,
+    "best_steps": 8,
+    "steps": 8,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   }
  ]
 }

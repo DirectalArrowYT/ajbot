@@ -8,3 +8,11 @@
 
 # Batch files need CRLF to run on Windows
 *.bat text eol=crlf
+
+# Game paks (optional_mods)
+*.pak binary
+*.ucas binary
+*.utoc binary
+*.sig binary
+*.asi binary
+*.bin binary

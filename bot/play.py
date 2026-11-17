@@ -138,6 +138,10 @@ def parse_args():
     ap.add_argument("--critic-beta", type=float, default=1.0,
                     help="how strongly the critic reranks the policy's choices "
                          "(0 = pure behaviour cloning)")
+    ap.add_argument("--skill", default=None, metavar="auto|0.1-1",
+                    help="match the opponent's skill: 'auto' adapts during play "
+                         "(starting from the last session's level), a number fixes "
+                         "it (1 = full strength). See ajbot/skillmatch.py")
     ap.add_argument("--no-stats", action="store_true",
                     help="do not append match results to stats/matches.jsonl")
     ap.add_argument("--stop-file", default=None,
@@ -313,6 +317,14 @@ def main():
     resources = None if args.no_resources else ResourcePolicy()
     escaper = None if args.no_escape else EscapePolicy(
         budget=args.escapes, min_hits_taken=args.escape_hits)
+    skill = None
+    if args.skill:
+        from ajbot.skillmatch import SkillMatch
+        auto = args.skill.lower() == "auto"
+        skill = SkillMatch(level=None if auto else float(args.skill), adapt=auto)
+        if defense is not None:
+            # Its skipped answers would teach the table that guarding failed.
+            defense.learn, defense.epsilon = False, 0.0
 
     # Combo chains by the game's rule, shared by every policy; and the combo
     # book mined from the recordings (python training/combobook.py builds it).
@@ -471,6 +483,8 @@ def main():
         if defense:
             extra["defense_stats"] = {k: (dict(v) if isinstance(v, dict) else v)
                                       for k, v in defense.stats.items()}
+        if skill:
+            extra["skill"] = skill.match_over(getattr(tracker, "winner", None))
         s = tracker.commit(extra)
         if s:
             print("  " + describe(s))
@@ -538,7 +552,8 @@ def main():
             # and our fighter's lever follows the stick we pushed last tick.
             roster.observe_control(snap, last_stick)
 
-            action, stick, teams = agent.decide(snap, roster)
+            # Skill matching: the bot sees the game a little late.
+            action, stick, teams = agent.decide(skill.view(snap) if skill else snap, roster)
             me, en = teams["me"], teams["enemy"]
             unknowns.observe(snap, teams)
             action_log.observe(snap)
@@ -620,6 +635,10 @@ def main():
                           f"Restart with --pick so the team can be pinned.")
 
             update_chain(chain, teams)
+            if skill:
+                skill.observe(teams)
+                if action and action != "Escape" and not skill.attack_ok():
+                    action = None
             if resources is not None:
                 action = resources.gate_model_pu(action, teams)
             match_combos.extend(c for c in chain.drain() if c.victim not in
@@ -639,7 +658,8 @@ def main():
                 action = None
             if escaper:
                 escaper.observe(teams)
-                if escaper.should_escape(teams, model_wants=model_esc):
+                if (escaper.should_escape(teams, model_wants=model_esc)
+                        and (not skill or skill.escape_ok(me))):
                     if pad:
                         press_escape(pad, escaper, teams=teams)
                     else:
@@ -652,7 +672,7 @@ def main():
             # Then resources: both are narrow windows worth more than whatever
             # the action head wanted this tick.
             spent = None
-            if not escaped and resources:
+            if not escaped and resources and (not skill or skill.extra_ok("resource")):
                 spent = resources.decide(teams)
                 if spent:
                     side = tagger.partner if tagger else "left"
@@ -684,7 +704,7 @@ def main():
                     if pad:
                         release_tag(pad, was)
             if not escaped and spent is None and tagger and not picked:
-                if tagger.should_tag(teams):
+                if tagger.should_tag(teams) and (not skill or skill.extra_ok("tag")):
                     if pad:
                         press_tag(pad, tagger, teams=teams)
                     else:
@@ -697,6 +717,8 @@ def main():
             guarded = None
             if not (escaped or spent or did_tag) and defense:
                 plan = defense.decide(teams)
+                if plan and skill and plan[0] != "wait" and not skill.defend_ok(en):
+                    plan = None
                 if plan:
                     guarded = plan[0]
                     if pad:
@@ -711,7 +733,8 @@ def main():
                 # hits coming longest for this character.
                 # With --routes, a known route (models/authored_routes.json) outranks the
                 # mined book: someone who knows the character wrote it down.
-                if route:
+                full = not skill or skill.routes_ok
+                if route and full:
                     rs = route.suggest(me, action, lambda a: a in ACTION_MAP
                                        and agent._available(a, me or {}),
                                        comboing=chain.by_us is not None)
@@ -720,13 +743,13 @@ def main():
                         match_taken["ROUTE"] += 1
                     if route.holding(me):
                         stick = (0.0, 0.0)
-                if combo and args.book and chain.by_us is not None and not (route and route.progress(me)):
+                if full and combo and args.book and chain.by_us is not None and not (route and route.progress(me)):
                     sug = combo.suggest(me, action, lambda a: a in ACTION_MAP
                                         and agent._available(a, me or {}))
                     if sug:
                         action = sug
                         match_taken["BOOK"] += 1
-                if tagger is not None and tagger.handoff:
+                if full and tagger is not None and tagger.handoff:
                     op = tagger.opener(me, lambda a: a in ACTION_MAP
                                        and agent._available(a, me or {}))
                     if op:
@@ -777,6 +800,7 @@ def main():
                     "stick": [round(stick[0], 3), round(stick[1], 3)],
                     "tag": did_tag, "escape": escaped, "resource": spent,
                     "defense": guarded, "bot": True,
+                    **({"skill": round(skill.level, 3)} if skill else {}),
                 }) + "\n")
                 hb.wrote()
             hb.live(matches, tracker.recording if out else None,

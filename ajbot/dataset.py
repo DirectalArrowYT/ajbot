@@ -147,8 +147,13 @@ HISTORY_K = 5
 
 # Bumped whenever labelling or feature construction changes in a way that
 # ME_FIELDS alone would not reveal, so the cache rebuilds.
-FEATURE_VERSION = 16     # 15: act_n in bot-pump units, slow-mo block, Wait
+FEATURE_VERSION = 20     # 15: act_n in bot-pump units, slow-mo block, Wait
                          # 16: Wait also sampled in hitstun
+                         # 17: game input-window block (movewindows)
+                         # 18: route-progress block (routefeat)
+                         # 19: wall block (wallfeat); movement head also
+                         #     samples held sticks (HOLD_EVERY_S)
+                         # 20: Wait also sampled mid-move (WAIT_MOVE_*)
 
 # `act_n` counts sampler pumps since the act began, not time: 15-21 a second
 # in the bot's own runs, 20 in the old human runs and ~46 in the m3-m6 human
@@ -162,10 +167,14 @@ BOT_ACT_RATE = 16.7
 # trained before they existed still runs: the agent drops the tail it does not
 # know. 8 reach + 2 commitment + 8 geometry/threat + opponent model,
 # recent-sequence and game frame-data values (oppmodel.N_FEATS), then the
-# slow-motion block (_slow_feats).
+# slow-motion block (_slow_feats), then the game's input windows
+# (movewindows.features: which follow-ups the game would take right now).
 from .oppmodel import N_FEATS as _OPP_N
+from .movewindows import N_FEATS as _WIN_N
+from .routefeat import N_FEATS as _ROUTE_N
+from .wallfeat import N_FEATS as _WALL_N
 SLOW_N = 7
-EXTRA_N = 18 + _OPP_N + SLOW_N
+EXTRA_N = 18 + _OPP_N + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N
 
 # "Wait": not pressing anything new. Recordings only hold the moments a
 # button WAS pressed (0.3-0.7 a second), while live play asks the policy 15
@@ -185,6 +194,18 @@ _WAIT_CLASSES = ("idle", "move", "other")
 # ~0-3 escapes a match.
 WAIT_HIT_EVERY_S = 1.0
 _WAIT_HIT_CLASSES = ("damage",)
+# And while the fighter's OWN move plays out. Both rules above skip attack
+# states, so between two presses of a string every sample was a press and the
+# head learned "mid-move: press the next one now": Shigaraki (Trench) bots
+# pressed Q2 every 8 frames where people wait ~37 (2026-11-16: 83% of bot
+# Q2->Q2 gaps under 20 frames vs 19% of human ones; 92% grounded, every one
+# whiffed). seq.me_since_action already tells the head how long the move has
+# run; these give it the "not yet" half. FEATURE_VERSION 20.
+# At most ONE per press (0.25 s apart made Wait 77% of a human match's
+# samples), 0.1 s into the move, with the next press 0.2 s or more away.
+WAIT_MOVE_AFTER_S = 0.1
+WAIT_MOVE_GAP_S = 0.2
+_WAIT_MOVE_CLASSES = ("combo", "attack")
 
 
 def wrap180(a):
@@ -452,9 +473,10 @@ def _normalize_act_n(ticks):
         return
     for t in ticks:
         for r in (t.get("chars") or {}).values():
-            n = r.get("act_n")
-            if isinstance(n, (int, float)):
-                r["act_n"] = n * k
+            for f in ("act_n", "mont_n"):   # mont_n: same pumps (movewindows)
+                n = r.get(f)
+                if isinstance(n, (int, float)):
+                    r[f] = n * k
 
 
 def swap_sides(ticks):
@@ -676,7 +698,8 @@ def _history_feats(history):
     return feats
 
 
-def featurize(tick, actions, chars, prev_cmd=None, history=None, opp=None):
+def featurize(tick, actions, chars, prev_cmd=None, history=None, opp=None, route=None,
+              wall=None):
     """Feature vector for one tick. `prev_cmd` is the last command that
     differed from the current one - the combo so far, one step back.
     `history` is up to HISTORY_K previous ticks of the SAME fighter's streak,
@@ -742,6 +765,10 @@ def featurize(tick, actions, chars, prev_cmd=None, history=None, opp=None):
     from .oppmodel import N_FEATS
     feats += list(opp) if opp is not None else [0.0] * N_FEATS
     feats += _slow_feats(me, en)
+    from .movewindows import features as _win_feats
+    feats += _win_feats(me, en)
+    feats += list(route) if route is not None else [0.0] * _ROUTE_N
+    feats += list(wall) if wall is not None else [0.0] * _WALL_N
     return np.array(feats, dtype=np.float32)
 
 
@@ -858,6 +885,12 @@ def feature_names(actions, chars):
     names += FEATURE_NAMES
     names += ["me.hslow", "me.slow", "en.hslow", "en.slow", "slow_edge",
               "me.ok_extreme", "en.ok_extreme"]
+    from .movewindows import FEATURE_NAMES as WIN_NAMES
+    names += WIN_NAMES
+    from .routefeat import FEATURE_NAMES as ROUTE_NAMES
+    names += ROUTE_NAMES
+    from .wallfeat import FEATURE_NAMES as WALL_NAMES
+    names += WALL_NAMES
     return names
 
 
@@ -865,12 +898,12 @@ def movement_persistence_cols(n_features=None):
     """Column indices of (lever_rel_sin, lever_rel_cos, lscale) - the 'keep
     pushing where you are pushing' baseline for the movement head, in the same
     opponent-relative frame as its target. The geometry block is the last
-    eight columns before the opponent model and the slow-mo block."""
+    eight columns before the opponent model, the slow-mo and window blocks."""
     if n_features is None:
         ns = len(ME_FIELDS) + len(ENEMY_FIELDS) + 2
         return ns, ns + 1, ME_FIELDS.index("lscale")
     from .oppmodel import N_FEATS
-    tail = N_FEATS + SLOW_N
+    tail = N_FEATS + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N
     return n_features - 8 - tail, n_features - 7 - tail, ME_FIELDS.index("lscale")
 
 
@@ -1485,10 +1518,47 @@ def route_book():
     return _ROUTES
 
 
+_FEATURE_BOOK = _ROUTE_INDEX = None
+
+
+def feature_book():
+    """{character: [step tuple]} for the route-progress features
+    (ajbot.routefeat): the reward's route book plus every library combo the
+    drill landed at least once. Stored in the trained policy, so live play
+    reads the same book."""
+    global _FEATURE_BOOK
+    if _FEATURE_BOOK is None:
+        from . import combodb
+        from . import routes as R
+        book = {c: list(v) for c, v in route_book().items()}
+        try:
+            lib = combodb.routes_for_bot(landed=True)
+        except (OSError, ValueError):
+            lib = {}
+        for char, items in lib.items():
+            have = set(book.get(char, ()))
+            for it in items:
+                q = tuple(x for x in it.get("steps") or () if x != R.WAIT)
+                if len(q) >= 2 and q not in have:
+                    book.setdefault(char, []).append(q)
+                    have.add(q)
+        _FEATURE_BOOK = book
+    return _FEATURE_BOOK
+
+
+def route_index():
+    global _ROUTE_INDEX
+    if _ROUTE_INDEX is None:
+        from .routefeat import Index
+        _ROUTE_INDEX = Index(feature_book())
+    return _ROUTE_INDEX
+
+
 def route_fingerprint():
-    """Changes when the route book does (part of the feature cache key)."""
+    """Changes when the route books do (part of the feature cache key)."""
     import hashlib
-    blob = json.dumps({c: [list(q) for q in v] for c, v in sorted(route_book().items())})
+    blob = json.dumps([{c: [list(q) for q in v] for c, v in sorted(b.items())}
+                       for b in (route_book(), feature_book())])
     return hashlib.sha1(blob.encode()).hexdigest()[:12]
 
 
@@ -1634,11 +1704,16 @@ def build_weighted(ticks, actions=None, chars=None, mode="transitions",
     want_wait = mode == "transitions" and WAIT in idx
     next_dec = _next_decision_times(ticks) if want_wait else None
     last_wait = last_hit_wait = -1e9
+    last_press, move_waited = -1e9, True
 
     X, y, w, G, I = [], [], [], [], []
     prev_cmd, last_cmd, last_key, key_start = None, None, None, 0
     from .oppmodel import OpponentModel
     om = OpponentModel()
+    from .routefeat import RouteTrack
+    rt = RouteTrack(route_index())
+    from .wallfeat import WallTrack
+    wt = WallTrack()
     start = play_start(ticks)
     for i, t in enumerate(ticks[:-1]):
         if i < start:
@@ -1646,8 +1721,11 @@ def build_weighted(ticks, actions=None, chars=None, mode="transitions",
         me = _rec(t, "me")
         key = key_of(t, "me")
         om.update(me, _rec(t, "enemy"), t.get("t", i / 15.0))
+        rt.observe(me, _rec(t, "enemy"), t.get("t", i / 15.0))
+        wt.observe(me, _rec(t, "enemy"), t.get("t", i / 15.0))
         if key != last_key:
             prev_cmd, last_cmd, last_key, key_start = None, None, key, i
+            move_waited = True            # a tag: the last press was the partner's
         cur = me.get("cmd") if me else None
         if cur != last_cmd:
             prev_cmd, last_cmd = last_cmd, cur
@@ -1674,9 +1752,15 @@ def build_weighted(ticks, actions=None, chars=None, mode="transitions",
                 elif (quiet and cls in _WAIT_HIT_CLASSES
                         and now - last_hit_wait >= WAIT_HIT_EVERY_S):
                     label, last_hit_wait = WAIT, now
+                elif (want_wait and not move_waited and cls in _WAIT_MOVE_CLASSES
+                        and now - last_press >= WAIT_MOVE_AFTER_S
+                        and next_dec[i] - now >= WAIT_MOVE_GAP_S
+                        and me.get("act") not in DEMO_ACTS):
+                    label, move_waited = WAIT, True
                 else:
                     continue
             else:
+                last_press, move_waited = t.get("t", i / 15.0), False
                 label = refine_dash(label, ticks, i, key)
                 if not scrub.keep(me, nxt, label):
                     continue
@@ -1689,7 +1773,7 @@ def build_weighted(ticks, actions=None, chars=None, mode="transitions",
         if label not in idx:
             continue
         history = ticks[max(key_start, i - HISTORY_K):i]
-        X.append(featurize(t, actions, chars, prev_cmd, history, om.feats()))
+        X.append(featurize(t, actions, chars, prev_cmd, history, om.feats(), rt.feats(me), wt.feats()))
         y.append(idx[label])
         wv = w_all[i] * boost_mult if boost is not None and i in boost else w_all[i]
         w.append(wv)
@@ -1796,6 +1880,14 @@ def build(ticks, actions=None, chars=None, mode="transitions", drop_idle=True,
     return X, y, actions, chars
 
 
+# The movement head used to learn only from moments the stick CHANGED, and for
+# people half of those are letting go (a turn, a pause before a press) while
+# they hold it fully 96% of the time in neutral: the head learned "let go"
+# and the bot stood or walked 21% of neutral vs 4% for people (2026-11-16).
+# A held stick is now also sampled once per this many seconds.
+HOLD_EVERY_S = 0.25
+
+
 def build_movement_weighted(ticks, actions=None, chars=None, min_change=20.0,
                             keep=None, boost=None, boost_mult=1.0, strict=False):
     """(X, Y, w) for the movement head. See `build_movement`. `boost` - see
@@ -1808,9 +1900,14 @@ def build_movement_weighted(ticks, actions=None, chars=None, min_change=20.0,
                                  **(STRICT if strict else {}))
 
     X, Y, w = [], [], []
+    last_sample = -1e9
     prev_cmd, last_cmd, last_key, key_start = None, None, None, 0
     from .oppmodel import OpponentModel
     om = OpponentModel()
+    from .routefeat import RouteTrack
+    rt = RouteTrack(route_index())
+    from .wallfeat import WallTrack
+    wt = WallTrack()
     start = play_start(ticks)
     for i, t in enumerate(ticks[:-1]):
         if i < start:
@@ -1818,6 +1915,8 @@ def build_movement_weighted(ticks, actions=None, chars=None, min_change=20.0,
         me = _rec(t, "me")
         key = key_of(t, "me")
         om.update(me, _rec(t, "enemy"), t.get("t", i / 15.0))
+        rt.observe(me, _rec(t, "enemy"), t.get("t", i / 15.0))
+        wt.observe(me, _rec(t, "enemy"), t.get("t", i / 15.0))
         if key != last_key:
             prev_cmd, last_cmd, last_key, key_start = None, None, key, i
         cur = me.get("cmd") if me else None
@@ -1833,13 +1932,15 @@ def build_movement_weighted(ticks, actions=None, chars=None, min_change=20.0,
         if not all(isinstance(v, (int, float)) for v in (a0, a1, s0, s1)):
             continue
         moved = abs(a1 - a0) > min_change or abs(s1 - s0) > min_change
-        if not moved:
-            continue
+        now = t.get("t", i / 15.0)
+        if not moved and now - last_sample < HOLD_EVERY_S:
+            continue           # a held stick: one sample per HOLD_EVERY_S
+        last_sample = now
         # Target in the opponent's frame, not the camera's: the same camera
         # angle means 'toward' on Player 1's side and 'away' on Player 2's.
         r = np.deg2rad(wrap180(a1 - tcam_of(nxt, _rec(ticks[i + 1], "enemy"))))
         history = ticks[max(key_start, i - HISTORY_K):i]
-        X.append(featurize(t, actions, chars, prev_cmd, history, om.feats()))
+        X.append(featurize(t, actions, chars, prev_cmd, history, om.feats(), rt.feats(me), wt.feats()))
         Y.append([np.sin(r), np.cos(r), s1 / 100.0])
         wv = w_all[i] * boost_mult if boost is not None and i in boost else w_all[i]
         w.append(wv)

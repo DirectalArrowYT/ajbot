@@ -381,6 +381,241 @@ def learn_route(files, text, char, side="me", max_free=3):
     return {"gaps": med, "repeat": repeat}, tries
 
 
+# learn_route() needs a whole clean try, and repeats of one label under
+# REPEAT_F frames count as one press - so "jump > AA > CA > Q2 > Q2 > Q2 >
+# TQ1 > TQ2" (Shigaraki Trench) never matched: people rarely open with the
+# jump or finish with the TQ2, and their Q2s are ~37 frames apart. Every step
+# kept the 14-frame guess, the search reached +-24 of it, and the drill gave
+# up at the third Q2 with 0 landed in 156 tries (2026-11-16). This learns each
+# step's gap from any stretch of human play that matches 3+ steps of the
+# route in order.
+LOOSE_MIN_RUN = 3
+LOOSE_DUP_F = 6           # the same label reported again this close is one event
+LOOSE_BREAK_S = 1.5       # a pause this long ends a chain
+LOOSE_REPEAT_S = 2.0      # an "(x3)" step's extra presses come within this
+LOOSE_MIN_N = 3           # samples a step needs before its human timing is used
+# The first take (2026-11-16) used every match and the median: people's A>CA
+# is two habits, 21-39 frames inside a combo and 53-60 after a dropped one,
+# and the median (45) was neither - the drill then dropped every try at CA,
+# worse than the guess. Now a gap counts only where the combo held across it
+# (the opponent did not get out of hitstun between the two moves, and was
+# hit by the time the second came out - give or take LOOSE_HIT_S, since the
+# first move's hit can land after the next press: Trench's air A>A is 6-17
+# frames), and the step takes the densest LOOSE_MODE_F window of those.
+LOOSE_MODE_F = 4
+LOOSE_HIT_S = 0.15
+LOOSE_VERSION = 3         # bump to re-learn notation_gaps.json "_loose"
+_NO_COMBO = ("Jump", "Dash", "DashForward", "DashBack", "Dodge")
+
+
+def _hurt(en):
+    """The opponent is in hitstun (a combo can go on)."""
+    act = str((en or {}).get("act") or "")
+    return act.startswith("Damage") and not act.endswith(("Recover", "Escape"))
+
+
+def _mode(v, win=LOOSE_MODE_F):
+    """The median of the densest +-win window of `v` (ties: the faster)."""
+    if not v:
+        return None
+    v = sorted(v)
+    best = max(v, key=lambda x: (sum(abs(y - x) <= win for y in v), -x))
+    near = [y for y in v if abs(y - best) <= win]
+    return near[len(near) // 2]
+
+
+def _chains(files, char):
+    """Per recording, `char`'s labelled events split into chains:
+    [[(label, t, last time the opponent got out of hitstun, next time it
+    was in hitstun)]]."""
+    from . import dataset as D
+    from .roster import base_name
+    out = []
+    for f in files:
+        try:
+            ticks = D.load(str(f))
+        except Exception:
+            continue
+        # when the opponent got out of hitstun / next was in it, per tick
+        hurt = [_hurt(D._rec(t, "en")) for t in ticks]
+        tt = [t.get("t") or 0.0 for t in ticks]
+        free_at, nxt_hurt = [], [float("inf")] * len(ticks)
+        fs = -1e9
+        for i in range(len(ticks)):
+            if i and hurt[i - 1] and not hurt[i]:
+                fs = tt[i]
+            free_at.append(fs)
+        nh = float("inf")
+        for i in range(len(ticks) - 1, -1, -1):
+            if hurt[i]:
+                nh = tt[i]
+            nxt_hurt[i] = nh
+        prev, ch = None, []
+        for i, t in enumerate(ticks):
+            me = D._rec(t, "me")
+            if not me or base_name(me.get("id")) != char:
+                prev = None
+                continue
+            lab = D.label_of(prev, me) if prev else None
+            if not lab and prev and demo.fresh_attack(prev, me):
+                lab = me.get("cmd")
+            prev = me
+            if not lab or lab in demo.NOISE:
+                continue
+            now = t.get("t")
+            if ch and now - ch[-1][1] > LOOSE_BREAK_S:
+                out.append(ch)
+                ch = []
+            if ch and lab == ch[-1][0] and (now - ch[-1][1]) * 60 < LOOSE_DUP_F:
+                continue
+            ch.append((lab, now, free_at[i], nxt_hurt[i]))
+        if ch:
+            out.append(ch)
+    return out
+
+
+def learn_route_loose(files, labels, char, min_run=LOOSE_MIN_RUN, presses=None):
+    """Per step of `labels`, the frames from the previous step as people
+    play it inside a combo that held (_mode of the gaps where the opponent was
+    still in hitstun as the step came out): any stretch of a chain that matches `min_run`+ steps of
+    the route in order counts (a reported-again move and a stray jab in
+    between are skipped). A step pressed more than once ("Q2 (x3)",
+    `presses[k]` > 1) takes the next same-label events within
+    LOOSE_REPEAT_S as its extra presses, timed from its first one - as
+    practice.py's repeat_at - and the next step's gap is from that first one
+    too, as practice counts it.
+    -> ([gap or None], [samples], {step: [frames to each extra]})."""
+    rec = lambda l: "Dash" if l == "DashForward" else l
+    want = [rec(l) for l in labels]
+    presses = list(presses or [0] * len(want))
+    per = [[] for _ in want]
+    reps = {k: [[] for _ in range(n - 1)] for k, n in enumerate(presses) if (n or 0) > 1}
+    for ch in _chains(files, char):
+        i = 0
+        while i < len(ch):
+            best = None
+            for a in range(len(want)):
+                if ch[i][0] != want[a]:
+                    continue
+                got, j, extra = [(a,) + tuple(ch[i][1:])], i + 1, {}
+                while j < len(ch) and got[-1][0] + 1 < len(want):
+                    lab, tt, fr, nh = ch[j]
+                    cur, t0 = got[-1][:2]
+                    nxt = want[cur + 1]
+                    many = (presses[cur] or 0) > 1
+                    if (many and lab == want[cur] and tt - t0 <= LOOSE_REPEAT_S
+                            and len(extra.get(cur, [])) < presses[cur] - 1):
+                        extra.setdefault(cur, []).append(int(round((tt - t0) * 60)))
+                    elif lab == nxt:
+                        got.append((cur + 1, tt, fr, nh))
+                    elif lab == want[cur] and (many or (tt - t0) * 60 < REPEAT_F):
+                        pass                 # the same move reported again
+                    elif lab != "Melee":
+                        break
+                    j += 1
+                if best is None or len(got) > len(best[0]):
+                    best = (got, j, extra)
+            if best and len(best[0]) >= min_run:
+                got, _, extra = best
+                for (k0, t0, _, nh0), (k1, t1, fr1, _) in zip(got, got[1:]):
+                    held = fr1 <= t0 and nh0 <= t1 + LOOSE_HIT_S
+                    if held or want[k0] in _NO_COMBO:
+                        per[k1].append(int(round((t1 - t0) * 60)))
+                for k, offs in extra.items():
+                    if len(offs) == presses[k] - 1:
+                        for r, o in enumerate(offs):
+                            reps[k][r].append(o)
+                i = best[1]
+            else:
+                i += 1
+    med = [_mode(v) for v in per]
+    rep = {k: [_mode(v) for v in lists]
+           for k, lists in reps.items() if all(len(v) >= LOOSE_MIN_N for v in lists)}
+    return med, [len(v) for v in per], rep
+
+
+def corpus_runs():
+    """Where the human recordings are: this checkout's runs/, else the
+    data server's (ajbot_local.json servers.server.dir - the box's corpus
+    when this is the lockstep copy)."""
+    from pathlib import Path
+    roots = [Path(__file__).resolve().parent.parent]
+    try:
+        from . import local
+        d = local.get("servers.server.dir")
+        if d:
+            roots.append(Path(d))
+    except Exception:
+        pass
+    for r in roots:
+        files = sorted((r / "runs").glob("*.jsonl"))
+        if files:
+            return files
+    return []
+
+
+def apply_human_gaps(route, files=None, log=print, keep=0):
+    """Notation and library routes carry guessed gaps (GAP) and extra-press
+    timing (REPEAT_EVERY) unless the player taught that combo's own timing
+    (--learn-gaps --notation). Where people did 3+ steps of it in the
+    recordings, start each step from how they did it instead; practice's
+    per-step search goes on from there. Cached per (char, steps) in
+    notation_gaps.json "_loose" - delete the entry to re-learn after new
+    recordings. Steps before `keep` (the drill already gets past them) keep
+    their gap; a changed step's learned offset starts over. Returns the
+    changes made (empty: nothing to do)."""
+    steps = route["steps"]
+    labels = [s["label"] for s in steps]
+    if "Tag" in labels or len(labels) < 3:
+        return []
+    data = _learned_gaps()
+    own = ((data.get("_routes") or {}).get(route["char"]) or {})
+    if own.get(_key(route.get("notation") or "")):
+        return []                                # the player's own timing wins
+    presses = [s.get("presses") or 0 for s in steps]
+    cache = data.setdefault("_loose", {}).setdefault(route["char"], {})
+    ck = " > ".join(l + (f" x{n}" if n > 1 else "") for l, n in zip(labels, presses))
+    hit = cache.get(ck)
+    if hit is None or hit.get("v") != LOOSE_VERSION:
+        if files is None:
+            files = corpus_runs()
+        mine = []
+        for f in files:
+            try:
+                with open(f, "rb") as fh:
+                    if route["char"].encode() in fh.read():
+                        mine.append(f)
+            except OSError:
+                pass
+        log(f"  learning {route['char']} timing from {len(mine)} recordings...")
+        med, n, rep = learn_route_loose(mine, labels, route["char"], presses=presses)
+        hit = cache[ck] = {"gaps": med, "n": n, "repeat": {str(k): v for k, v in rep.items()},
+                           "files": len(mine), "v": LOOSE_VERSION}
+        try:
+            GAPS_PATH.write_text(json.dumps(data, indent=1, sort_keys=True))
+        except OSError:
+            pass
+    used = []
+    adj = (route.get("learned") or {}).get("adj")
+    adj = adj if isinstance(adj, list) and len(adj) == len(steps) else None
+    for k, (st, g, c) in enumerate(zip(steps, hit["gaps"], hit["n"])):
+        if (k and k >= keep and g is not None and c >= LOOSE_MIN_N
+                and not st.get("after_grab") and st["gap"] != g):
+            used.append(f"step {k} gap {st['gap']}->{g}")
+            st["gap"] = g
+            if adj:
+                adj[k] = 0
+    for k, offs in (hit.get("repeat") or {}).items():
+        st = steps[int(k)]
+        if int(k) >= keep and st.get("presses") and st.get("repeat_at") != offs:
+            used.append(f"step {k} extra presses at {offs}")
+            st["repeat_at"] = offs
+    if used:
+        log(f"  {route['name']}: timing from human play ({hit['files']} recordings): "
+            + ", ".join(used))
+    return used
+
+
 def parse(text, char, use_routes=True):
     """Notation -> list of steps {label, gap, rel, note?, hold_frames?, tag?}."""
     steps = []

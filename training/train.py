@@ -216,10 +216,12 @@ def movement_models():
     the one save_policy ships, same as action_models()."""
     from sklearn.ensemble import RandomForestRegressor
     m = {
-        # 120 trees / leaf 4: the 300-tree, leaf-2 forest was ~85% of the
+        # 120 trees / leaf 6: the 300-tree, leaf-2 forest was ~85% of the
         # policy file (500+ MB) and the slowest step of every live decision.
+        # Leaf 4 -> 6 with FEATURE_VERSION 19: held-stick sampling gives ~1.6x
+        # the rows (mostly near-repeats), and this keeps the forest the same size.
         "random forest": RandomForestRegressor(n_estimators=120,
-                                               min_samples_leaf=4,
+                                               min_samples_leaf=6,
                                                random_state=0, n_jobs=-1),
         # The MLP regressor was dropped: on every run it scored worse than
         # predicting the mean (-158% on the last one) and dominated runtime.
@@ -457,12 +459,24 @@ def _permanent_defect(path, blind_limit=0.5):
 BOT_MIN_TICKS = 400
 
 
+def _is_drill(path):
+    """A drill recording (practice.py --record into drillruns/)."""
+    return Path(path).resolve().parent.name == "drillruns"
+
+
+# A drill file holds only landed attempts (~2-4 s each): far shorter than a
+# match, and nothing in it is an aborted game.
+DRILL_MIN_TICKS = 60
+
+
 def _usable(path, min_ticks, blind_limit=0.5):
     """Skip short recordings and any with a permanent_defect()."""
     n, defect = permanent_defect(path, blind_limit)
     if defect:
         print(f"  skipping {path}: {defect}")
         return False
+    if _is_drill(path):
+        return n >= DRILL_MIN_TICKS
     return n >= (min(min_ticks, BOT_MIN_TICKS) if _is_bot(path) else min_ticks)
 
 
@@ -488,6 +502,10 @@ MATCH_KIND_WEIGHT = {
     # the human's own decisions against the bot. These are the players the
     # bot loses to (the 2026-11-09 pro session), so they count the most.
     "human_swapped": 1.5,
+    # drillruns/ (practice.py --record): the bot's own LANDED attempts at a
+    # library combo against a training dummy - whole long routes, which
+    # matches almost never show, but off a standing start, so not more.
+    "drill": 1.0,
 }
 
 # Kinds where a real person was playing. --human-share scales their files up
@@ -578,12 +596,35 @@ def _match_kind(path):
     """
     if _swapped(path):
         return "human_swapped"
+    if _is_drill(path):
+        return "drill"
     if not _is_bot(path):
         return "human"
     paired = Path(path).stem.count(".") >= 1
     if _opponent_ai_fraction(path) >= 0.5:
         return "vs_cpu"
     return "self_play" if paired else "vs_human"
+
+
+def _handicapped(path):
+    """A match the bot played below full strength (ajbot.skillmatch: every
+    tick carries "skill" < 1). Its own side is not imitated."""
+    from ajbot import tickcache
+    return tickcache.cached_fact(path, "skill1", _handicapped_raw, raw=True)
+
+
+def _handicapped_raw(path):
+    import json as _json
+    with open(path, encoding="utf-8") as fh:
+        for i, line in enumerate(fh):
+            if i > 200:
+                break
+            if not line.strip():
+                continue
+            v = _json.loads(line).get("skill")
+            if isinstance(v, (int, float)):
+                return v < 0.95
+    return False
 
 
 # Self-play where one bot spent the match standing still teaches nothing about
@@ -760,6 +801,8 @@ def arrays(files, acts, chars, kind, pick_for=None, outcomes=None,
 
     def mult_for(f):
         kind_f = _match_kind(f)
+        if not _swapped(f) and _is_bot(f) and _handicapped(f):
+            return 0.0    # the bot played down on purpose; the human side still counts
         m = MATCH_KIND_WEIGHT.get(kind_f, 1.0)
         if kind_f == "self_play":
             m *= passive_weight(f)
@@ -812,6 +855,9 @@ def main():
     ap.add_argument("--human-share", type=float, default=0.0,
                     help="scale human recordings up to at least this share of "
                          "the total sample weight (0 = off; the league uses 0.6)")
+    ap.add_argument("--drills", default="drillruns/*.jsonl",
+                    help="with --include-bot: glob of landed combo-drill recordings "
+                         "(practice.py --record); '' to leave them out")
     ap.add_argument("--include-bot", action="store_true",
                     help="also train on the bot's own runs (see the warning)")
     ap.add_argument("--cherrypick", nargs="?", const="bot", default="off",
@@ -868,6 +914,13 @@ def main():
         files += sorted(glob.glob("botruns/*.jsonl"))
         print("WARNING: training on the bot's own runs clones its current "
               "behaviour, not yours")
+    if args.include_bot and args.drills:
+        # The bot's own play, like botruns/: never in a human-only fit
+        # (league.py's models/human, the boss's lean).
+        drills = sorted(glob.glob(args.drills))
+        if drills:
+            files += drills
+            print(f"  {len(drills)} drill recordings ({args.drills})")
     if len(files) > 1:
         with ProcessPoolExecutor(max_workers=min(WORKERS, len(files))) as ex:
             usable = list(ex.map(partial(_usable, min_ticks=args.min_ticks), files))
@@ -930,7 +983,7 @@ def main():
         print(f"{len(files)} matches; holding out all {len(vs_h)} vs_human "
               f"matches, scored on the human's decisions")
     else:
-        human = [f for f in files if not _is_bot(f)]
+        human = [f for f in files if not _is_bot(f) and not _is_drill(f)]
         holdout = human[-1] if (human and len(human) < len(files)) else files[-1]
         tr_files = [f for f in files if f != holdout] + swaps
         te_files = [holdout]
@@ -1075,7 +1128,11 @@ def save_policy(out_dir, files, acts, chars, mode, pick_for=None,
                      # instead of a shape error deep inside sklearn
                      "n_features": int(Xa.shape[1]),
                      "critic": critic_m, "critic_scale": critic_scale,
-                     "critic_counts": critic_counts}, fh)
+                     "critic_counts": critic_counts,
+                     # the route-progress features' book, so live play
+                     # matches what the policy learned (dataset.feature_book)
+                     "route_book": {c: [list(q) for q in v]
+                                    for c, v in D.feature_book().items()}}, fh)
     print(f"saved {d / 'policy.pkl'}")
 
 

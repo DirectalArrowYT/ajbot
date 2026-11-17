@@ -6,112 +6,256 @@
    "tier": "hypothetical",
    "notation": "AA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 2,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-2989d4",
    "tier": "hypothetical",
    "notation": "AA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 6,
+    "landed": 3,
+    "best_steps": 3,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-46e9b1",
    "tier": "hypothetical",
    "notation": "AA > TQ2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 6,
+    "landed": 3,
+    "best_steps": 3,
+    "steps": 3,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-52d621",
    "tier": "hypothetical",
    "notation": "AAA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 2,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-0106e2",
    "tier": "hypothetical",
    "notation": "AAA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 5,
+    "landed": 3,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-64d1ad",
    "tier": "hypothetical",
    "notation": "AAA > TQ2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 9,
+    "landed": 4,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-96857b",
    "tier": "hypothetical",
    "notation": "AA > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 1,
+    "best_steps": 4,
+    "steps": 4,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-b8e759",
    "tier": "hypothetical",
    "notation": "AAA > CA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 4,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-0ad44f",
    "tier": "hypothetical",
    "notation": "AAA > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 4,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-3cb5de",
    "tier": "hypothetical",
    "notation": "UB > AAA > PU",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-c8c727",
    "tier": "hypothetical",
    "notation": "UB > AAA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 4,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-e8beee",
    "tier": "hypothetical",
    "notation": "AAA > CA > TQ2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 4,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-7ea270",
    "tier": "hypothetical",
    "notation": "UB > AAA > TQ2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 3,
+    "landed": 3,
+    "best_steps": 5,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-430611",
    "tier": "hypothetical",
    "notation": "UB > AAA > CA > Q1",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 5,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-59959d",
    "tier": "hypothetical",
    "notation": "UB > AAA > Q2 > Q2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 2,
+    "best_steps": 6,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-9d84bc",
    "tier": "hypothetical",
    "notation": "UB > AAA > CA > TQ2",
    "source": "game-cpu",
-   "notes": "From the game's own CPU combo list."
+   "notes": "From the game's own CPU combo list.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 5,
+    "steps": 6,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-53e34e",
@@ -119,7 +263,16 @@
    "notation": "TQ1 > Q2 > AAA > CA > Q2 > A > Q1",
    "source": "ml",
    "damage": 0.419,
-   "notes": "Found in recordings: landed 2 time(s)."
+   "notes": "Found in recordings: landed 2 time(s).",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 6,
+    "steps": 9,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-4a72ff",
@@ -127,7 +280,16 @@
    "notation": "TQ1 > Q2 > AAA > CA > Q1 > Q2 > AA > TQ2 > CA",
    "source": "ml",
    "damage": 0.518,
-   "notes": "Found in recordings: landed 1 time(s)."
+   "notes": "Found in recordings: landed 1 time(s).",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 6,
+    "steps": 12,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-f9220a",
@@ -135,7 +297,16 @@
    "notation": "AAA > CA > Q1 > Q2 > TQ1 > Dodge > AAA > CA > Q1 > Q2 > AA > TQ2 > CA",
    "source": "ml",
    "damage": 0.59,
-   "notes": "Found in recordings: landed 1 time(s)."
+   "notes": "Found in recordings: landed 1 time(s).",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 4,
+    "steps": 18,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-53942b",
@@ -143,7 +314,16 @@
    "notation": "A > Q1 > Q2 > GC > TQ2",
    "source": "draft",
    "name": "Aizawa: A Q1 Q2, pull-counter into TQ2 (DRAFT, near-impossible timing)",
-   "notes": "Player: after A Q1 Q2 a pull then counter can go straight into TQ2 (ExUnique2); timing is extremely tight. Disabled: it shares the A Q1 Q2 prefix with the loop, which needs a Wait there."
+   "notes": "Player: after A Q1 Q2 a pull then counter can go straight into TQ2 (ExUnique2); timing is extremely tight. Disabled: it shares the A Q1 Q2 prefix with the loop, which needs a Wait there.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 3,
+    "steps": 5,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-520952",
@@ -151,7 +331,16 @@
    "notation": "AAA > GC > Q1 > Q2 > AA > TQ2 > GC",
    "source": "draft",
    "name": "Aizawa: AAA CA Q1 Q2 AA Q4 CA",
-   "notes": "Player's route, CA ending (used when Plus Ultra is not available)."
+   "notes": "Player's route, CA ending (used when Plus Ultra is not available).",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 9,
+    "steps": 10,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   },
   {
    "id": "eraserhead-1073c6",
@@ -159,7 +348,16 @@
    "notation": "AAA > GC > Q1 > Q2 > AA > TQ2 > PU",
    "source": "draft",
    "name": "Aizawa: AAA CA Q1 Q2 AA Q4 into Plus Ultra",
-   "notes": "Player's route. A=Melee, CA=CounterAttack, Q1=Unique1, Q2=Unique2 (pull), Q4/TQ2=ExUnique2 (hold move). Ends in PU when the gauge allows, otherwise the CA variant."
+   "notes": "Player's route. A=Melee, CA=CounterAttack, Q1=Unique1, Q2=Unique2 (pull), Q4/TQ2=ExUnique2 (hold move). Ends in PU when the gauge allows, otherwise the CA variant.",
+   "tested": {
+    "attempts": 40,
+    "landed": 0,
+    "best_steps": 4,
+    "steps": 10,
+    "dummy": "guards",
+    "by": "bot",
+    "date": "2026-11-16"
+   }
   }
  ]
 }

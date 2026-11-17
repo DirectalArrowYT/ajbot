@@ -306,8 +306,9 @@ def render(root=DIR):
 
 # ------------------------------------------------------------------ routes
 
-def routes_for_bot(root=DIR, tiers=("authored", "potential")):
-    """{char: [route]} in routes.py's format, for the tiers the bot may follow."""
+def routes_for_bot(root=DIR, tiers=("authored", "potential"), landed=False):
+    """{char: [route]} in routes.py's format, for the tiers the bot may follow.
+    With `landed`, also any combo the drill landed at least once (tested)."""
     from . import notation as N
     out = {}
     if not root.is_dir():
@@ -318,7 +319,8 @@ def routes_for_bot(root=DIR, tiers=("authored", "potential")):
         except ValueError:
             continue
         for c in data.get("combos") or []:
-            if c.get("tier") not in tiers:
+            if c.get("tier") not in tiers and not (
+                    landed and ((c.get("tested") or {}).get("landed") or 0) > 0):
                 continue
             try:
                 steps = [s["label"] for s in N.parse(c["notation"], char, use_routes=False)]

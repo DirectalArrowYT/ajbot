@@ -23,8 +23,9 @@ the game itself with --launch. Each attempt:
 
 Timing search: the first step that fails gets its offset tried at 0, -2, +2,
 -4, +4 ... frames; an offset that gets further is kept and the search moves
-on to the next failing step. When no offset helps, the step before it is
-re-tuned once (its timing decides the state the next one is pressed from).
+on to the next failing step. When no offset helps, the steps before it are
+re-tuned, walking back one at a time (their timing decides the state the
+next one is pressed from).
 Once the whole route lands, it is repeated --confirm times; it is "down" when
 it lands at least --target of those. Results (offsets, best, success rate) go
 back into models/demo_routes.json under "learned", and every attempt to
@@ -83,6 +84,10 @@ BATTLE = "OnBeginBattleSequence = Battle"
 # positions (Right: rising gauge max, Down: Plus Ultra max, Up: sidekick).
 CONTENT_OFF, TRAINING = 0x30, 2
 DPAD_LEFT = 0x0004
+# --record: ticks a second, the bot's own match rate (dataset.BOT_ACT_RATE).
+REC_HZ = 16.7
+
+
 def log(msg):
     print(time.strftime("[%H:%M:%S] ") + msg, flush=True)
 
@@ -123,6 +128,9 @@ class Game:
 
     def __init__(self, a, route):
         self.trace = None             # [frame, act, cmd, enemy act, dist, enemy hp] per view
+        self.rec = None               # --record: this attempt's ticks, botrun schema
+        self.rec_next = 0             # frame of the next recorded tick
+        self.rec_base = None          # (frame, seconds) the recording's clock counts from
         self.gate = None              # trainer_gate.HumanGate (--trainer)
         self.a = a
         self.route = route
@@ -283,10 +291,43 @@ class Game:
             self.trace.append([self.link.frame, me.get("act"), me.get("cmd"), en.get("act"),
                                round(me.get("dist") or 0), round(en.get("hp") or 0, 4),
                                me.get("atk"), me.get("atkcount")])
+        if self.rec is not None and me and en:
+            self._record(snap, t)
         if me and en:
             self.chain.update(sampler.dedupe(snap), [r["key"] for r in t["mine"]],
                               [r["key"] for r in t["theirs"]], me["key"], en["key"])
         return me, en
+
+    def _record(self, snap, t):
+        """One tick in play2.py's botrun schema, at the bot's own sampling
+        rate (REC_HZ), on a game-frame clock so act_n rescales like a match."""
+        f = self.link.frame
+        if self.rec_base is None or f < self.rec_base[0]:
+            last = self.rec[-1]["t"] if self.rec else time.time()
+            self.rec_base = (f, last + 5.0)
+        if f < self.rec_next:
+            return
+        self.rec_next = f + 60.0 / REC_HZ
+        chars = {}
+        for k, c in sampler.dedupe(snap).items():
+            c = {kk: (round(vv, 3) if isinstance(vv, float) else vv) for kk, vv in c.items()}
+            c["slot"] = k
+            chars[k] = c
+        me, en = t.get("me") or {}, t.get("enemy") or {}
+        keep = {me.get("key"), en.get("key")}
+        keep.update(c.get("key") for c in t.get("mine") or [])
+        keep.update(c.get("key") for c in t.get("theirs") or [])
+        chars = sampler.prune_stale(chars, {k for k in keep if k})
+        self.rec.append({
+            "t": round(self.rec_base[1] + (f - self.rec_base[0]) / 60.0, 3), "chars": chars,
+            "me": me.get("key"), "enemy": en.get("key"),
+            "mine": [c.get("key") for c in t.get("mine") or []],
+            "theirs": [c.get("key") for c in t.get("theirs") or []],
+            "roster": self.roster.sides(),
+            "action": me.get("cmd"),
+            "lever": [me.get("lang"), me.get("lscale"), me.get("lon")],
+            "bot": True, "drill": True, "route": self.route.get("name"),
+        })
 
     # ---- between attempts ----
     def settle(self, max_frames=600):
@@ -581,6 +622,7 @@ def attempt(g, route, adj, lat, a):
     drift = None                  # stick angle kept held after a press
     grab_k = grab_seen = grab_rel = None   # waiting out a grab before step grab_k
     extra = []                    # [frame, step] more presses of a "Q2 (x3)" step
+    last_mash = -1                # "mash": N - press the step again every N frames until it registers
     prev_me = None
     fail_at = why = got = None
     dropped = False
@@ -740,6 +782,14 @@ def attempt(g, route, adj, lat, a):
                     drift = None
                     g.step(1)
                     continue
+        if w is not None and steps[w].get("mash") and not held \
+                and f - max(press_f[w], last_mash) >= max(int(steps[w]["mash"]), a.hold + 2):
+            buttons, stick = plan(steps[w], me, en)
+            g.pad.stick(stick)
+            g.pad.hold(*buttons)
+            held, release_at, last_mash = buttons, f + a.hold, f
+            g.step(1)
+            continue
         if extra and f >= extra[0][0] and not held:
             buttons, stick = plan(extra.pop(0)[1], me, en)
             g.pad.stick(stick)
@@ -887,18 +937,41 @@ class Search:
             return ""
         if self.tries:
             return ""
-        if self.back_from is None and self.focus > 0:
-            # Nothing at this step helped: re-tune the one before it once.
-            stuck = self.focus
-            self._aim(stuck - 1)
+        if self.focus > 0 and (self.back_from is None or self.focus > 1):
+            # Nothing at this step helped: re-tune the ones before it, walking
+            # back one at a time. A dropped chain shows at the first step that
+            # never came out, which can be well after the press that was late:
+            # Trench's buffered air A>A came out too late, the bot landed, and
+            # the chain broke two steps on, at Q2 (2026-11-16).
+            stuck = self.back_from if self.back_from is not None else self.focus
+            self._aim(self.focus - 1)
             self.back_from = stuck
-            return f"step {stuck} stuck - re-tuning step {stuck - 1}"
+            return f"step {stuck} stuck - re-tuning step {self.focus}"
         self.stuck = self.back_from if self.back_from is not None else self.focus
         return f"step {self.stuck} stuck at every offset"
 
 
 DEFAULT_DUMMY = "8,5,6"           # Kirishima, Iida, Asui
 DUMMY_POOL = (8, 5, 6, 9, 10, 11, 7)   # + Jiro, Yaoyorozu, Tokoyami, Kaminari
+
+
+_REC_FILE = {}
+
+
+def save_recording(folder, route, ticks):
+    """Append a landed attempt to this session's recording of the route
+    (one file per route and session, so it clears train.py's length floor)."""
+    import re
+    d = Path(folder)
+    d.mkdir(parents=True, exist_ok=True)
+    name = route.get("name") or "route"
+    path = _REC_FILE.get(name)
+    if path is None:
+        slug = re.sub(r"[^A-Za-z0-9]+", "-", f"{route.get('char', '')}-{name}").strip("-")[:60]
+        path = _REC_FILE[name] = d / f"{int(time.time())}-{slug}.jsonl"
+    with open(path, "a") as fh:
+        for t in ticks:
+            fh.write(json.dumps(t) + "\n")
 
 
 def nm_ids(name):
@@ -956,6 +1029,9 @@ def main():
                          "not on the desktop")
     ap.add_argument("--log", default=str(HERE / "practice.jsonl"))
     ap.add_argument("--trace", help="write every attempt's frame-by-frame states here (JSONL)")
+    ap.add_argument("--record", metavar="DIR",
+                    help="save every LANDED attempt as a training recording in DIR "
+                         "(drillruns/: train.py learns from them like a match)")
     a = ap.parse_args()
 
     if a.partner_names:
@@ -993,6 +1069,14 @@ def main():
         route = demo.get(a.route)
         if not route:
             sys.exit(f"no saved demo route matches '{a.route}' (python -m ajbot.demo show)")
+    # Notation/library routes: start from people's timing (notation.
+    # apply_human_gaps), not the fixed guesses - but only from the step the
+    # drill is stuck on: the steps it already gets past keep their timing and
+    # learned offsets (replacing those dropped every try at CA, 2026-11-16).
+    if route.get("source") == "notation" or route.get("lib"):
+        # (the step before the stuck one is being tuned too: a late CA drops the Q2)
+        keep = 0 if a.fresh else int((route.get("learned") or {}).get("best") or 0) - 1
+        notation.apply_human_gaps(route, log=log, keep=keep)
     steps = route["steps"]
     if any(s["label"] == "Tag" for s in steps):
         a.per_match = 1           # the point fighter changed: start over each time
@@ -1098,7 +1182,12 @@ def main():
             no_range = 0
             trial = list(search.adj) if (a.watch or streak) else search.next_adj()
             g.trace = [] if a.trace else None
+            g.rec = [] if a.record else None
             r = attempt(g, route, trial, lat, a)
+            if g.rec is not None:
+                if g.rec and landed(r, route):
+                    save_recording(a.record, route, g.rec)
+                g.rec = None
             if a.trace:
                 # What our fighter and the dummy did every frame we looked,
                 # to line up against the person's recording (drill.py --compare).

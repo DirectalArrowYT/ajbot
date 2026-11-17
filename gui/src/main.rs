@@ -58,6 +58,10 @@ struct Settings {
     resources: bool,
     escape: bool,
     record: bool,
+    /// Human vs Bot: "off" (full strength), "auto" (adapts to the player)
+    /// or "fixed" (skill_level).
+    skill_mode: String,
+    skill_level: f32,
     pick_start: String,
     /// Bot vs Bot: endless random matches with automatic rematch.
     auto_loop: bool,
@@ -105,6 +109,8 @@ impl Default for Settings {
             resources: true,
             escape: true,
             record: true,
+            skill_mode: "off".into(),
+            skill_level: 0.5,
             pick_start: "DekuFinal".into(),
             auto_loop: false,
             auto_again_left: false,
@@ -673,6 +679,13 @@ impl App {
                 flag(&mut a, s.resources, "--no-resources");
                 flag(&mut a, s.escape, "--no-escape");
                 flag(&mut a, s.record, "--no-record");
+                if vs_human {
+                    match s.skill_mode.as_str() {
+                        "auto" => a.extend(["--skill".into(), "auto".into()]),
+                        "fixed" => a.extend(["--skill".into(), format!("{:.2}", s.skill_level)]),
+                        _ => {}
+                    }
+                }
                 let base = if online { "Online lobby (Player 1)" }
                            else if vs_human { "Human vs Bot" } else { "Bot vs CPU" };
                 let mut label = base.to_string();
@@ -904,6 +917,19 @@ impl App {
                     }
                     if self.mode == Mode::HumanVsBot || self.mode == Mode::OnlineLobby {
                         ui.add(egui::Slider::new(&mut s.hz, 5.0..=30.0).text("decisions/s"));
+                    }
+                    if self.mode == Mode::HumanVsBot {
+                        ui.end_row();
+                        ui.label("Bot strength:");
+                        ui.radio_value(&mut s.skill_mode, "off".to_string(), "Full")
+                            .on_hover_text("The bot plays as well as it can.");
+                        ui.radio_value(&mut s.skill_mode, "auto".to_string(), "Match my skill")
+                            .on_hover_text("The bot adjusts to you as you play: at lower levels it reacts later, attacks less, guards and escapes less often and skips its best combos. It plays down while it is winning and harder when you are, aiming for close fights, and remembers the level for next time.");
+                        ui.radio_value(&mut s.skill_mode, "fixed".to_string(), "Fixed level");
+                        if s.skill_mode == "fixed" {
+                            ui.add(egui::Slider::new(&mut s.skill_level, 0.1..=1.0).text("level"))
+                                .on_hover_text("1 = full strength.");
+                        }
                     }
                 });
             });

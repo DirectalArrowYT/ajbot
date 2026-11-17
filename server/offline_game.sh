@@ -97,9 +97,18 @@ if [[ -n "$SFX" && ! -d "$PREFIX" ]]; then
     cp -a --reflink=auto "$BASE_PREFIX" "$PREFIX"
 fi
 mkdir -p "$PREFIX" "$RUN"
-# One launcher per copy: the lock lives as long as the game and its bridges.
+# One launcher per copy: the lock is held by this shell alone (every child
+# below gets `9>&-`). Bridges used to inherit it, so after the game was
+# killed (pkill AJGAME.exe) surviving bridges held the lock and every
+# relaunch was refused as "already running".
 exec 9>"$RUN/lock"
 flock -n 9 || { echo "game copy $INST is already running" >&2; exit 1; }
+# With the lock ours, any bridge still serving this copy's sockets is a
+# leftover from a game that died (it would also hold the hook port).
+if pkill -f "netbridge\.py .*$RUN/" 2>/dev/null; then
+    echo "stopped leftover bridges of copy $INST"
+    sleep 0.3
+fi
 rm -f "$RUN"/*.sock
 
 # Started from ssh: borrow the logged-in desktop session's display and audio.
@@ -116,7 +125,7 @@ for p in $STEAM_PORTS; do
     HOST+=(unix2tcp "$RUN/steam-$p.sock" "$p")
     INSIDE+=(tcp2unix "$p" "$RUN/steam-$p.sock")
 done
-python3 "$NB" "${HOST[@]}" &
+python3 "$NB" "${HOST[@]}" 9>&- &
 HOST_BRIDGE=$!
 ENDLESS=""
 trap 'kill $HOST_BRIDGE $ENDLESS 2>/dev/null; rm -f "$RUN"/*.sock' EXIT
@@ -124,7 +133,7 @@ sleep 0.3
 if [[ -n "${AJ_ENDLESS:-}" ]]; then
     # shellcheck disable=SC2086  # AJ_ENDLESS_ARGS is a word list on purpose
     AJ_INSTANCE="$INST" AJHOOK_PORT="$PORT" AJ_PREFIX="$BASE_PREFIX" \
-        python3 "$HERE/server/endless.py" ${AJ_ENDLESS_ARGS:-} >>"$HERE/endless$SFX.log" 2>&1 &
+        python3 "$HERE/server/endless.py" ${AJ_ENDLESS_ARGS:-} >>"$HERE/endless$SFX.log" 2>&1 9>&- &
     ENDLESS=$!
     echo "endless.py running (pid $ENDLESS, log $HERE/endless$SFX.log)"
 fi
@@ -154,11 +163,11 @@ if (( FLATPAK )); then
     FPENV=(); for e in "${ENVS[@]}"; do FPENV+=(--env="$e"); done
     flatpak run --parent-pid="$SPID" --parent-share-pids --unshare=network \
         --die-with-parent "${FPENV[@]}" --command=bash "$FP_ID" \
-        -c "$INNER" _ "$NB" "$EXE" "$PROTON" "${AJ_GAME_ARGS:-}" "${INSIDE[@]}"
+        -c "$INNER" _ "$NB" "$EXE" "$PROTON" "${AJ_GAME_ARGS:-}" "${INSIDE[@]}" 9>&-
 else
     # Hide systemd-resolved's socket too so name lookups fail outright.
     NOLOOKUP=()
     [[ -d /run/systemd/resolve ]] && NOLOOKUP=(--tmpfs /run/systemd/resolve)
     env "${ENVS[@]}" bwrap --dev-bind / / --unshare-net "${NOLOOKUP[@]}" \
-        --die-with-parent -- bash -c "$INNER" _ "$NB" "$EXE" "$PROTON" "${AJ_GAME_ARGS:-}" "${INSIDE[@]}"
+        --die-with-parent -- bash -c "$INNER" _ "$NB" "$EXE" "$PROTON" "${AJ_GAME_ARGS:-}" "${INSIDE[@]}" 9>&-
 fi
