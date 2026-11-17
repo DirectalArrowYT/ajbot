@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build.sh /path/to/AJGAME.exe: regenerate the stub blobs + patch list for this game build, then build both ASIs:
 #   ../ajfpfix.asi            for Intel players: Intel computes like AMD (gen/tables/amd, from a Zen 5 CPU)
-#   ../ajfpfix_intelmath.asi  for AMD players:   AMD computes like Intel (gen/tables/intel, from an i7-9700K)
+#   ../Optional for AMD users/ajfpfix_intelmath.asi  for AMD players:   AMD computes like Intel (gen/tables/intel, from an i7-9700K)
 # Needs binutils (objdump, as, ld, objcopy), python3, and a Rust toolchain with the x86_64-pc-windows-gnu target.
 # Tables come from dump.c + compact.py; verify.c/asmtest.c check emu.h/emu.s against the CPU (run in a tables dir).
 set -euo pipefail
@@ -19,5 +19,5 @@ export RUSTFLAGS="--remap-path-prefix=$HOME=~ --remap-path-prefix=$PWD=."
 cargo build --release --target x86_64-pc-windows-gnu
 cp target/x86_64-pc-windows-gnu/release/ajfpfix.dll ../ajfpfix.asi
 cargo build --release --target x86_64-pc-windows-gnu --features intel_math
-cp target/x86_64-pc-windows-gnu/release/ajfpfix.dll ../ajfpfix_intelmath.asi
-echo "built ../ajfpfix.asi ../ajfpfix_intelmath.asi"
+cp target/x86_64-pc-windows-gnu/release/ajfpfix.dll "../Optional for AMD users/ajfpfix_intelmath.asi"
+echo "built ../ajfpfix.asi ../Optional for AMD users/ajfpfix_intelmath.asi"

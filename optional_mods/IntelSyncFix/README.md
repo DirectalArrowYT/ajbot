@@ -12,9 +12,9 @@ exact results. There are two versions. **In a match, exactly one player uses one
 
 | You are | Opponent is | Who installs what |
 |---|---|---|
-| Intel | AMD | the Intel player installs `ajfpfix.asi` (Intel computes like AMD), **or** the AMD player installs `ajfpfix_intelmath.asi` (AMD computes like Intel) |
+| Intel | AMD | the Intel player installs `ajfpfix.asi` (Intel computes like AMD), **or** the AMD player installs `Optional for AMD users/ajfpfix_intelmath.asi` (AMD computes like Intel) |
 | Intel | Intel | nobody, or both install `ajfpfix.asi` |
-| AMD | AMD | nobody, or both install `ajfpfix_intelmath.asi` |
+| AMD | AMD | nobody, or both install `Optional for AMD users/ajfpfix_intelmath.asi` |
 
 Don't use both versions in one match: then the Intel PC computes like AMD and the AMD PC like Intel, which is the
 same mismatch as no mod at all. A mod on only one side of a same-brand match causes a desync too.
@@ -29,8 +29,10 @@ acts on Intel CPUs, `ajfpfix_intelmath.asi` only on non-Intel CPUs.
    stage-select mod. Otherwise use Ultimate ASI Loader, saved there as `dsound.dll`.
    - On Linux/Steam Deck, also set the game's Steam launch options to
      `WINEDLLOVERRIDES="dsound=n,b" %command%`.
-2. Copy **one** of the two `.asi` files into
-   `<Steam>/steamapps/common/MY HERO ACADEMIA All's Justice/HeroGame/Binaries/Win64/`.
+2. Copy **one** `.asi` file into
+   `<Steam>/steamapps/common/MY HERO ACADEMIA All's Justice/HeroGame/Binaries/Win64/`:
+   - Intel players: `ajfpfix.asi` (this folder).
+   - AMD players, only when your Intel opponent doesn't have `ajfpfix.asi`: `Optional for AMD users/ajfpfix_intelmath.asi`.
 3. Start the game. A log appears next to `AJGAME.exe` (`ajfpfix.log` or `ajfpfix_intelmath.log`). It should say
    `patched 464 rcp/rsqrt sites to AMD tables` (or `to Intel tables`).
 
