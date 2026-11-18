@@ -10,7 +10,15 @@
 //!
 //! Safety: a peer is used only after its inputs over a 240-frame window hash-match the copy the host delivered for
 //! the same frames (so packets from other matches are never used), and every directly fed frame is compared with
-//! the host's copy when that arrives (mismatches are logged). Does nothing on the host (listen server).
+//! the host's copy when that arrives (mismatches are logged).
+//!
+//! Host mode (on the listen server, works even when the fighters don't have the mod): the game already has an
+//! adaptive input delay ("AdditionalHistoryCount", ctrl+0x920, lead = 6 + count frames) that only the host raises
+//! and that travels in byte 3 of each KeyHistory array's first element header. A spectating host never sends its
+//! own arrays, it only forwards the fighters' unchanged (their byte is always 0), so the fighters stay at 6 frames
+//! against two network legs. The host hook on the ClientTransitKeyHistory send wrapper writes the delay it wants
+//! into the forwarded copy (the receiver keeps the max, so both fighters converge on it), raising it while the
+//! fighters keep stalling (seen as repeated step frames in their packets), and flushes the connection right after.
 //!
 //! Transports: UDP (`peer=ip:port` lines in ajdirect.ini, `listen=port`) and Steam networking messages to Steam
 //! friends who are playing AJ (`steam=1`, default on).
@@ -33,6 +41,12 @@ const RVA_SEND_SERVER: usize = 0x5556300; // ServerTransitKeyHistory send wrappe
 const RVA_TICK_SEND: usize = 0x5e50990; // battle controller TickActor(this, dt, type, fn): once per game frame
 const RVA_CLIENT_IMPL: usize = 0x5e3bc10; // ClientTransitKeyHistory_Implementation (this, const TArray<Key>&)
 const RVA_GET_NET_MODE: usize = 0x3448400; // AActor::GetNetMode
+const RVA_FWD: usize = 0x5555bc0; // ClientTransitKeyHistory send wrapper (target ctrl, const TArray<Key>&), host side
+const RVA_FLUSH: usize = 0x3aae130; // UNetConnection::FlushNet(conn, bool bIgnoreSimulation)
+const OFF_CONN: usize = 0x518; // APlayerController::NetConnection
+const OFF_ADDCOUNT: usize = 0x920; // controller: requested AdditionalHistoryCount (extra input delay frames)
+const PRO_FWD: &[u8] = &[0x48, 0x89, 0x5c, 0x24, 0x08];
+const PRO_FLUSH: &[u8] = &[0x40, 0x55, 0x57, 0x41, 0x55, 0x48, 0x8d, 0x6c, 0x24, 0xb9, 0x48, 0x81, 0xec, 0xc0, 0x00, 0x00, 0x00];
 const OFF_STEP: usize = 0x8a4; // controller: lockstep frame being stepped
 const PRO_SEND: &[u8] = &[0x48, 0x89, 0x5c, 0x24, 0x08];
 const PRO_TICK: &[u8] = &[0x40, 0x53, 0x56, 0x57, 0x48, 0x81, 0xec, 0x90, 0x01, 0x00, 0x00];
@@ -54,6 +68,8 @@ struct Entry { hdr: u64, n: i32, pad: i32, inner: TArr }
 static mut ORIG_SEND: usize = 0;
 static mut ORIG_TICK: usize = 0;
 static mut ORIG_CLIENT: usize = 0;
+static mut ORIG_FWD: usize = 0;
+static mut FLUSH_NET: usize = 0;
 static mut GET_NET_MODE: usize = 0;
 static mut IN_INJECT: bool = false;
 
@@ -239,10 +255,12 @@ fn identity(id: u64) -> [u8; 136] {
 }
 
 // ---------------------------------------------------------------- state
-struct Cfg { enabled: bool, steam: bool, listen: u16, peers: Vec<SocketAddr>, steam_peers: Vec<u64>, stats_every: u64 }
+struct Cfg { enabled: bool, steam: bool, listen: u16, peers: Vec<SocketAddr>, steam_peers: Vec<u64>, stats_every: u64,
+             host: bool, host_floor: u8, host_max: u8, host_flush: bool, host_up_pct: u32 }
 
 fn read_cfg() -> Cfg {
-    let mut c = Cfg { enabled: true, steam: true, listen: 7790, peers: vec![], steam_peers: vec![], stats_every: 600 };
+    let mut c = Cfg { enabled: true, steam: true, listen: 7790, peers: vec![], steam_peers: vec![], stats_every: 600,
+                      host: true, host_floor: 0, host_max: 10, host_flush: true, host_up_pct: 5 };
     if let Ok(t) = std::fs::read_to_string(exe_dir().join(format!("{}.ini", stem()))) {
         for line in t.lines() {
             let line = line.trim();
@@ -256,6 +274,11 @@ fn read_cfg() -> Cfg {
                 "peer" => { if let Ok(a) = v.parse() { c.peers.push(a) } }
                 "steam_peer" => { if let Ok(a) = v.parse() { c.steam_peers.push(a) } }
                 "stats_every" => c.stats_every = v.parse().unwrap_or(c.stats_every).max(60),
+                "host" => c.host = v != "0",
+                "host_floor" => c.host_floor = v.parse().unwrap_or(c.host_floor).min(24),
+                "host_max" => c.host_max = v.parse().unwrap_or(c.host_max).min(24),
+                "host_flush" => c.host_flush = v != "0",
+                "host_up_pct" => c.host_up_pct = v.parse().unwrap_or(c.host_up_pct).clamp(1, 100),
                 _ => {}
             }
         }
@@ -524,6 +547,100 @@ unsafe extern "system" fn hook_tick(this: *mut u8, dt: f32, tt: u32, tf: *mut u8
     orig(this, dt, tt, tf)
 }
 
+// ---------------------------------------------------------------- host mode
+struct Host {
+    level: u8,                 // delay we put in forwarded arrays (frames over the base 6)
+    last_step: [u32; 2],       // latest step frame seen in each fighter's packets
+    win_step0: [u32; 2],       // each fighter's step frame when this window started (0 = not seen yet)
+    tot_lost: f64, tot_exp: f64, // frames the fighters did not step / frames they should have stepped (60 fps)
+    fwd: u64, raised: u64, flushes: u64,
+    win_start: Option<std::time::Instant>, last_fwd: Option<std::time::Instant>,
+}
+static HOST: Mutex<Host> = Mutex::new(Host { level: 0, last_step: [0; 2], win_step0: [0; 2], tot_lost: 0.0,
+    tot_exp: 0.0, fwd: 0, raised: 0, flushes: 0, win_start: None, last_fwd: None });
+static HOST_CFG: Mutex<Option<(bool, u8, u8, bool, u32, u64)>> = Mutex::new(None);
+
+const HOST_WINDOW_S: f32 = 2.0;  // stall ratio measured over this long before raising
+const HOST_WARMUP: u32 = 300;    // ignore the first 5 s of a match (loading, both sides connecting)
+
+unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize {
+    let orig: Fn2 = std::mem::transmute(ORIG_FWD);
+    let cfg = HOST_CFG.lock().ok().and_then(|g| *g);
+    let Some((on, floor, max, flush, up_pct, every)) = cfg else { return orig(target, keys) };
+    if !on || keys.is_null() || target.is_null() || (*keys).num <= 0 || (*keys).ptr.is_null() {
+        return orig(target, keys);
+    }
+    let nm: NetMode = std::mem::transmute(GET_NET_MODE);
+    if nm(target) != 2 { return orig(target, keys); }
+    let e0 = (*keys).ptr as *mut Entry;
+    let hdr = (*e0).hdr;
+    let k = match hdr_mask(hdr) { 1 => 0usize, 2 => 1usize, _ => return orig(target, keys) };
+    let step = ((hdr >> 32) as u32) & 0xffffff;
+    let mut want = 0u8;
+    if let Ok(mut h) = HOST.lock() {
+        let now = std::time::Instant::now();
+        // a gap of 20 s between forwards = a new room/match: start over from the floor
+        if h.last_fwd.map_or(true, |t| now.duration_since(t).as_secs() >= 20) {
+            if h.fwd > 0 { host_stats(&h, "match end"); }
+            *h = Host { level: floor, last_step: [0; 2], win_step0: [0; 2], tot_lost: 0.0, tot_exp: 0.0, fwd: 0,
+                        raised: 0, flushes: 0, win_start: Some(now), last_fwd: None };
+            log(&format!("host: forwarding started, delay +{floor}"));
+        }
+        h.last_fwd = Some(now);
+        h.fwd += 1;
+        if step + 600 < h.last_step[k] { h.win_step0[k] = 0; } // fighter's frames restarted (new round/match)
+        h.last_step[k] = step;
+        if h.win_step0[k] == 0 && step > HOST_WARMUP { h.win_step0[k] = step; }
+        let dt = h.win_start.map_or(0.0, |t| now.duration_since(t).as_secs_f32());
+        if dt >= HOST_WINDOW_S {
+            // each fighter should step 60 frames a second (fixed frame rate); the shortfall is time spent stalled
+            let exp = 60.0 * dt as f64;
+            let mut worst = 0.0f64;
+            for i in 0..2 {
+                if h.win_step0[i] == 0 { continue; }
+                let adv = h.last_step[i].saturating_sub(h.win_step0[i]) as f64;
+                let lost = (exp - adv).max(0.0);
+                h.tot_lost += lost; h.tot_exp += exp;
+                worst = worst.max(lost / exp);
+                h.win_step0[i] = h.last_step[i];
+            }
+            if worst * 100.0 >= up_pct as f64 && h.level < max {
+                h.level += 1;
+                log(&format!("host: a fighter stalled {:.0}% of the last {dt:.1}s -> delay +{}", worst * 100.0, h.level));
+            }
+            h.win_start = Some(now);
+        }
+        if h.fwd % (every * 2) == 0 { host_stats(&h, "periodic"); }
+        want = h.level;
+    }
+    // what the target controller's own logic asks for is a lower bound; the game caps it at 24
+    let own = *target.add(OFF_ADDCOUNT);
+    let b3 = (e0 as *mut u8).add(3);
+    let cur = *b3;
+    let out = cur.max(want).max(own).min(24);
+    if out != cur { *b3 = out; }
+    let r = orig(target, keys); // the wrapper copies the array before sending, so restore right after
+    if out != cur {
+        *b3 = cur;
+        if let Ok(mut h) = HOST.lock() { h.raised += 1; }
+    }
+    if flush {
+        let conn = *(target.add(OFF_CONN) as *const *mut u8);
+        if !conn.is_null() {
+            let f: unsafe extern "system" fn(*mut u8, u8) = std::mem::transmute(FLUSH_NET);
+            f(conn, 0);
+            if let Ok(mut h) = HOST.lock() { h.flushes += 1; }
+        }
+    }
+    r
+}
+
+fn host_stats(h: &Host, why: &str) {
+    log(&format!("host stats[{why}] forwarded {} fighter_stall {:.1}% ({:.0} of {:.0} frames) delay +{} raised {} flushes {}",
+        h.fwd, if h.tot_exp > 0.0 { 100.0 * h.tot_lost / h.tot_exp } else { 0.0 }, h.tot_lost, h.tot_exp,
+        h.level, h.raised, h.flushes));
+}
+
 // ---------------------------------------------------------------- install
 unsafe fn alloc_near(base: usize, size: usize) -> usize {
     let mut a = base + 0xb40_0000;
@@ -565,7 +682,8 @@ unsafe fn install() -> Result<String, String> {
     let base = GetModuleHandleW(std::ptr::null()) as usize;
     if base == 0 { return Err("no exe module".into()); }
     let at = |rva: usize, n: usize| std::slice::from_raw_parts((base + rva) as *const u8, n);
-    for (rva, pro) in [(RVA_SEND_SERVER, PRO_SEND), (RVA_TICK_SEND, PRO_TICK), (RVA_CLIENT_IMPL, PRO_CLIENT)] {
+    for (rva, pro) in [(RVA_SEND_SERVER, PRO_SEND), (RVA_TICK_SEND, PRO_TICK), (RVA_CLIENT_IMPL, PRO_CLIENT),
+                       (RVA_FWD, PRO_FWD), (RVA_FLUSH, PRO_FLUSH)] {
         if at(rva, pro.len()) != pro {
             return Err(format!("code at rva {rva:#x} differs (different game build?)"));
         }
@@ -577,6 +695,8 @@ unsafe fn install() -> Result<String, String> {
     ORIG_SEND = detour(base + RVA_SEND_SERVER, PRO_SEND, hook_send as *const () as usize, &mut mem);
     ORIG_CLIENT = detour(base + RVA_CLIENT_IMPL, PRO_CLIENT, hook_client as *const () as usize, &mut mem);
     ORIG_TICK = detour(base + RVA_TICK_SEND, PRO_TICK, hook_tick as *const () as usize, &mut mem);
+    FLUSH_NET = base + RVA_FLUSH;
+    ORIG_FWD = detour(base + RVA_FWD, PRO_FWD, hook_fwd as *const () as usize, &mut mem);
     FlushInstructionCache(GetCurrentProcess(), start as *const c_void, 0x1000);
     Ok(format!("hooks at {start:#x}"))
 }
@@ -592,6 +712,10 @@ fn setup() -> String {
         }
     } else { None };
     notes.push(format!("enabled {} steam {} peers {:?} steam_peers {:?}", cfg.enabled, cfg.steam, cfg.peers, cfg.steam_peers));
+    notes.push(format!("host {} floor +{} max +{} flush {} up_pct {}", cfg.host, cfg.host_floor, cfg.host_max, cfg.host_flush, cfg.host_up_pct));
+    if let Ok(mut g) = HOST_CFG.lock() {
+        *g = Some((cfg.enabled && cfg.host, cfg.host_floor, cfg.host_max.max(cfg.host_floor), cfg.host_flush, cfg.host_up_pct, cfg.stats_every));
+    }
     let st = St {
         cfg, udp, steam: None, steam_cands: vec![], ctrl: 0, own_k: None, own: Rec::default(),
         host: Default::default(), direct: Default::default(), bonded: None, queue: VecDeque::new(), tick: 0,

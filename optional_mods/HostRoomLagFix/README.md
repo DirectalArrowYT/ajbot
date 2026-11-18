@@ -12,12 +12,29 @@ match keeps pausing to wait. Because everyone runs the same frames, the whole ro
 The other fighter's game takes whichever copy comes first. The host's copy still arrives as usual, so a lost direct
 packet costs nothing.
 
-- **Only the two fighters need it.** The host and spectators don't. On the host it does nothing.
+- **The two fighters get the most from it.** Spectators don't need it.
+- **The host can install it too.** It then helps even when the fighters don't have the mod (see "Host mode" below).
 - **The two fighters must be Steam friends** (that's how it finds the other player). No ports or settings needed.
 - **It can't change what happens in the match.** The mod only uses the other player once 240 frames of their direct
   inputs exactly match the copy the host delivered. After that it checks every directly sent frame against the
   host's copy when that arrives, and logs any mismatch.
 - When the host fights (normal 1v1), it has no effect.
+
+## Host mode (when the fighters don't have the mod)
+
+Installed on a host that spectates, the mod does two things each time the host forwards a fighter's inputs:
+
+- **It sends them right away** instead of at the end of the host's frame.
+- **It tells both fighters to use more input delay when they keep stalling.** The game already has this setting
+  and raises it on its own, but a spectating host never passes it on, so the fighters stay at the minimum. The mod
+  passes the host's value on, and adds a little more if the fighters still stall (at most `host_max` frames).
+
+The cost is a few frames more input delay while the connection is slow, instead of the match pausing. When the host
+fights, or the fighters have the mod, host mode changes nothing that matters: the direct copy still arrives first.
+
+The host's log shows a `host stats[...]` line every 1200 forwards:
+- `fighter_stall`: how far the fighters fell behind full speed, as the host sees it. Lower is better.
+- `delay +N`: the extra input delay the mod added on top of the game's own.
 
 ## Install
 
@@ -59,10 +76,23 @@ delayed on purpose. One full match per row, all played to the victory screen:
 
 The direct copy arrived first on every frame, by 2 frames on average at 40 ms and 4 frames at 80 ms.
 
+Host mode, with the mod **only on the host** (fighters without it):
+
+| Delay per trip | Host mode | Fighter frames stalled | Host stall warnings | Input delay the fighters ended on |
+|---|---|---|---|---|
+| 40 ms | off | 1.1% | 1377 | 6 frames |
+| 40 ms | on | 0.4% | 112 | 7 frames |
+| 80 ms | off | 45.6% | 6624 | 6 frames |
+| 80 ms | on | 1.0% | 167 | 12-13 frames |
+| 80 ms | on, `host_flush=0` | 1.6% | 193 | 12 frames |
+
+Most of the gain comes from the input delay reaching the fighters; sending right away adds a little.
+
 Not tested yet:
 - **Between real PCs over Steam.** The test above sent the direct inputs over a local connection. The Steam path
   (Steam networking messages to friends playing AJ) is written but hasn't been tried in a real room.
 - Rooms with more than one spectator.
+- Host mode between real PCs, and how much the extra input delay is noticed in play.
 
 ## Options (`ajdirect.ini`, optional)
 
@@ -74,6 +104,11 @@ Not tested yet:
 | `peer=<ip>:<port>` | none | LAN/testing: send over UDP to this address (opens UDP port `listen`) |
 | `listen=<port>` | 7790 | UDP port for `peer=` |
 | `stats_every=<frames>` | 600 | how often the stats line is logged |
+| `host=0` | 1 | turn host mode off |
+| `host_max=<frames>` | 10 | most extra input delay host mode may add (the game's own limit is 18 extra) |
+| `host_floor=<frames>` | 0 | extra input delay host mode always adds |
+| `host_up_pct=<percent>` | 5 | add 1 frame when a fighter stalls at least this much over 2 seconds |
+| `host_flush=0` | 1 | don't send forwarded inputs right away |
 
 ## How it works / build from source
 
@@ -81,5 +116,7 @@ Not tested yet:
 - The client's `ServerTransitKeyHistory` send wrapper, to copy its own inputs out.
 - `ClientTransitKeyHistory_Implementation`, to see the host's copy and to feed the direct copy in the same way.
 - The battle controller's `TickActor`, to send, receive and count stalls once per frame.
+- On the host: the `ClientTransitKeyHistory` send wrapper, to pass on the input delay (byte 3 of the first entry's
+  header, the game's `AdditionalHistoryCount`) and flush the connection after each forward.
 
 `source/build.sh` builds `ajdirect.asi`. It needs Rust with the `x86_64-pc-windows-gnu` target.
