@@ -6,7 +6,8 @@
 Writes:
     dist/ajbot-gui.exe                     the GUI
     dist/ajbot-gamefiles-<version>.zip     unzips into HeroGame/Binaries/Win64:
-        dinput8.dll                        Ultimate ASI Loader
+        dsound.dll                         Ultimate ASI Loader (AJGAME.exe imports DSOUND.dll;
+                                           nothing loads dinput8.dll on many Windows PCs)
         dwmapi.dll, ue4ss/                 UE4SS core + its stock mods,
                                            HookLoadMap = 0 in the settings
         ue4ss/Mods/CursorExport, AJProbe   this repo's ue4ss_mods/
@@ -42,8 +43,12 @@ DIST = Path("dist")
 # Stock UE4SS mods kept in the bundle (BPModLoader needs the generic functions;
 # Keybinds and shared are part of UE4SS itself).
 STOCK_MODS = ("BPModLoaderMod", "BPML_GenericFunctions", "Keybinds", "shared")
-THIRD_PARTY = {"dinput8.dll", "dwmapi.dll", "ue4ss/UE4SS.dll"}
+THIRD_PARTY = {"dsound.dll", "dwmapi.dll", "ue4ss/UE4SS.dll"}
 SKIP_SUFFIX = (".log", ".dmp", ".old", ".bak", ".txt.bak")
+
+
+# Off Windows the release is cross-built; on Windows the host target is Windows already.
+WIN_TARGET = "" if os.name == "nt" else "x86_64-pc-windows-gnu"
 
 
 def cargo(folder):
@@ -55,9 +60,12 @@ def cargo(folder):
     flags += [f"--remap-path-prefix={src}={dst}" for src, dst in remaps]
     env["CARGO_ENCODED_RUSTFLAGS"] = "\x1f".join(flags)   # survives spaces in paths
     env["CARGO_TARGET_DIR"] = str(Path(folder, "target", "dist").resolve())
-    print(f"> cargo build --release   ({folder}, paths remapped)", flush=True)
-    subprocess.check_call(["cargo", "build", "--release"], cwd=folder, env=env)
-    return Path(env["CARGO_TARGET_DIR"]) / "release"
+    cmd = ["cargo", "build", "--release"]
+    if WIN_TARGET:   # cross-build the Windows .dll / .exe (needs mingw-w64-gcc)
+        cmd += ["--target", WIN_TARGET]
+    print(f"> {' '.join(cmd)}   ({folder}, paths remapped)", flush=True)
+    subprocess.check_call(cmd, cwd=folder, env=env)
+    return Path(env["CARGO_TARGET_DIR"], WIN_TARGET, "release")
 
 
 def private_hits(blobs):
@@ -102,12 +110,14 @@ def main():
     if game is None:
         raise SystemExit("game folder not found - pass --game")
     win64 = doctor.win64_of(game)
-    hook = Path("ajhook/target/dist/release/ajhook.dll")
-    gui = Path("gui/target/dist/release/ajbot-gui.exe")
+    hook = Path("ajhook/target/dist", WIN_TARGET, "release/ajhook.dll")
+    gui = Path("gui/target/dist", WIN_TARGET, "release/ajbot-gui.exe")
     if not a.no_build:
         hook = cargo("ajhook") / "ajhook.dll"
         gui = cargo("gui") / "ajbot-gui.exe"
-    for p in (hook, gui, win64 / "dinput8.dll", win64 / "dwmapi.dll", win64 / "ue4ss" / "UE4SS.dll"):
+    # The loader ships as dsound.dll whatever this install calls it (same Ultimate ASI Loader binary).
+    loader = next((win64 / n for n in ("dsound.dll", "dinput8.dll") if (win64 / n).exists()), win64 / "dsound.dll")
+    for p in (hook, gui, loader, win64 / "dwmapi.dll", win64 / "ue4ss" / "UE4SS.dll"):
         if not p.exists():
             raise SystemExit(f"missing {p}")
 
@@ -118,7 +128,7 @@ def main():
     zpath = DIST / f"ajbot-gamefiles-{ver}.zip"
     ue = win64 / "ue4ss"
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(win64 / "dinput8.dll", "dinput8.dll")
+        z.write(loader, "dsound.dll")
         z.write(win64 / "dwmapi.dll", "dwmapi.dll")
         z.write(hook, "ajhook.asi")
         z.write(ue / "UE4SS.dll", "ue4ss/UE4SS.dll")

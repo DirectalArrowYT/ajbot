@@ -194,9 +194,16 @@ def run_checks():
             stamp = json.loads((win64 / GAMEFILES_STAMP).read_text())
         except (OSError, ValueError):
             pass
-        loader = "dsound.dll" if LINUX else "dinput8.dll"
-        add("asi_loader", "Game", f"ASI loader ({loader})", (win64 / loader).exists(),
-            "", "gamefiles", "Install game files")
+        # AJGAME.exe imports DSOUND.dll, so the loader must be dsound.dll; nothing loads dinput8.dll on
+        # many Windows PCs (older game-files releases shipped it under that name, and then no .asi loads).
+        old_loader = is_asi_loader(win64 / "dinput8.dll")
+        has_loader = (win64 / "dsound.dll").exists()
+        add("asi_loader", "Game", "ASI loader (dsound.dll)", has_loader and not old_loader,
+            "" if has_loader and not old_loader else
+            ("dinput8.dll often isn't loaded, so no .asi mods run" if old_loader else ""),
+            "asiloader" if old_loader else "gamefiles",
+            "Rename to dsound.dll" if old_loader and not has_loader else
+            ("Remove old dinput8.dll" if old_loader else "Install game files"))
         ue = (win64 / "dwmapi.dll").exists() and (win64 / "ue4ss" / "UE4SS.dll").exists()
         add("ue4ss", "Game", "UE4SS", ue, "", "gamefiles", "Install game files")
         hlm = ini_hookloadmap(win64)
@@ -343,6 +350,30 @@ def install_mods(win64):
     say("enabled in mods.txt: " + ", ".join(OUR_MODS))
 
 
+def is_asi_loader(p):
+    """True if p is an Ultimate ASI Loader build (any name)."""
+    try:
+        data = p.read_bytes()
+    except OSError:
+        return False
+    return b"Ultimate-ASI-Loader" in data or "Ultimate-ASI-Loader".encode("utf-16-le") in data
+
+
+def fix_asi_loader(win64):
+    """Old game-files releases shipped the loader as dinput8.dll, which many Windows PCs never load. Move it to
+    dsound.dll (AJGAME.exe imports that), or drop the old copy if dsound.dll is already there, so no .asi
+    gets loaded twice."""
+    old, new = win64 / "dinput8.dll", win64 / "dsound.dll"
+    if not is_asi_loader(old):
+        return
+    if new.exists():
+        old.replace(win64 / "dinput8.dll.old")
+        say("ASI loader: dsound.dll already there; old dinput8.dll moved to dinput8.dll.old")
+    else:
+        old.replace(new)
+        say("ASI loader: renamed dinput8.dll to dsound.dll")
+
+
 def install_gamefiles(win64):
     say(f"asking GitHub for the latest release of {RELEASE_REPO} ...")
     rel, asset = release_with(GAMEFILES_PREFIX)
@@ -365,6 +396,7 @@ def install_gamefiles(win64):
             with z.open(info) as src, open(dest, "wb") as out:
                 shutil.copyfileobj(src, out)
         say(f"extracted {len(z.infolist())} files into {win64}")
+    fix_asi_loader(win64)
     if keep_ini:
         set_hookloadmap(win64)
     install_mods(win64)
@@ -413,6 +445,8 @@ def fix(fid, path=None):
         set_hookloadmap(win64)
     elif fid == "mods":
         install_mods(win64)
+    elif fid == "asiloader":
+        fix_asi_loader(win64)
     elif fid == "gamefiles":
         install_gamefiles(win64)
     else:

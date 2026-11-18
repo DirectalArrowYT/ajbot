@@ -55,7 +55,7 @@ def main():
     lines = [a.notes] if a.notes else []
     lines += ["Game-side files for AJBot: unzip into `HeroGame/Binaries/Win64` "
               "(Setup > **Install game files** does it for you).", "",
-              "- `dinput8.dll`: Ultimate ASI Loader",
+              "- `dsound.dll`: Ultimate ASI Loader",
               "- `dwmapi.dll`, `ue4ss/`: UE4SS (HookLoadMap = 0) with its stock mods",
               "- `ue4ss/Mods/CursorExport`, `AJProbe`: the bot's UE4SS mods",
               "- `ajhook.asi`: the bot's in-game hook", "",

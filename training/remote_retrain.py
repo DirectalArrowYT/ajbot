@@ -58,7 +58,8 @@ def use_host(name):
     global HOST, REMOTE, PY, SSH, LINUX
     h = HOSTS.get(name) or _local.server(name)
     HOST, REMOTE, PY, LINUX = h["host"], h["dir"], h["python"], h["linux"]
-    SSH = ["C:/Windows/System32/OpenSSH/ssh.exe", "-o", "BatchMode=yes", HOST]
+    exe = "C:/Windows/System32/OpenSSH/ssh.exe" if os.name == "nt" else "ssh"
+    SSH = [exe, "-o", "BatchMode=yes", HOST]
 HERE = Path(__file__).resolve().parent.parent   # the repo root
 
 CODE_EXCLUDE = ("runs", "botruns", "cache", "archive", "gui", "ajhook", "__pycache__",

@@ -25,8 +25,12 @@ acts on Intel CPUs, `ajfpfix_intelmath.asi` only on non-Intel CPUs.
 
 ## Install
 
-1. You need an ASI loader in `HeroGame/Binaries/Win64/`. AJBot's game files include one, and so does the
-   stage-select mod. Otherwise use Ultimate ASI Loader, saved there as `dsound.dll`.
+1. You need an ASI loader in `HeroGame/Binaries/Win64/`, named **`dsound.dll`**. AJBot's game files include one,
+   and so does the stage-select mod. Otherwise use Ultimate ASI Loader, saved there as `dsound.dll`.
+   - **Only Ultimate ASI Loader (ThirteenAG) is supported.** Other loaders, such as "Universal ASI Loader",
+     are not: replace them with Ultimate ASI Loader saved as `dsound.dll`.
+   - The name matters: the game always loads `dsound.dll`, but on many Windows PCs it never loads `dinput8.dll`.
+     If your loader is `dinput8.dll` (older AJBot game files) and no `.log` appears, rename it to `dsound.dll`.
    - On Linux/Steam Deck, also set the game's Steam launch options to
      `WINEDLLOVERRIDES="dsound=n,b" %command%`.
 2. Copy **one** `.asi` file into
@@ -50,6 +54,7 @@ If a game update changes the code, the mod checks the bytes first. It then patch
 | Same PCs, Intel with `ajfpfix` | 3 of 3 matches to victory, every frame identical, Plus Ultras and PU combos included |
 | AMD vs AMD, mod forced on one side | full match, identical (the mod's math matches AMD exactly) |
 | AMD with `ajfpfix_intelmath.asi` vs Intel i7-9700K, no mod | 2 of 2 matches to victory, every frame identical, two Nana Plus Ultras included |
+| Intel vs Intel (Linux/Proton and Windows 11), both with `ajfpfix.asi` | online, plays normally; Windows 11 needed the loader named `dsound.dll` (as `dinput8.dll` nothing loaded) |
 
 Not tested yet:
 - **Older AMD CPUs (Zen 1–4)** and **other Intel generations:** the tables come from one CPU of each brand. If another
