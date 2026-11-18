@@ -560,9 +560,13 @@ struct Host {
     tot_lost: f64, tot_exp: f64, // frames the fighters did not step / frames they should have stepped (60 fps)
     fwd: u64, raised: u64, flushes: u64,
     win_start: Option<std::time::Instant>, last_fwd: Option<std::time::Instant>,
+    sid: [u64; 2],             // each fighter's SteamID (from the packet read just before its forward)
+    sent: [VecDeque<(u32, std::time::Instant)>; 2], // fighter i's input frontier as the host forwarded it, with time
+    rtt: [Vec<f32>; 2],        // host-side round trip samples per fighter (ms), see hook_fwd
 }
 static HOST: Mutex<Host> = Mutex::new(Host { level: 0, last_step: [0; 2], win_step0: [0; 2], tot_lost: 0.0,
-    tot_exp: 0.0, fwd: 0, raised: 0, flushes: 0, win_start: None, last_fwd: None });
+    tot_exp: 0.0, fwd: 0, raised: 0, flushes: 0, win_start: None, last_fwd: None, sid: [0; 2],
+    sent: [VecDeque::new(), VecDeque::new()], rtt: [Vec::new(), Vec::new()] });
 static HOST_CFG: Mutex<Option<(bool, u8, u8, bool, u32, u64, bool, u32)>> = Mutex::new(None);
 
 const HOST_WINDOW_S: f32 = 2.0;  // stall ratio measured over this long before raising
@@ -576,6 +580,7 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
     }
     let nm: NetMode = std::mem::transmute(GET_NET_MODE);
     if nm(target) != 2 { return orig(target, keys); }
+    net_hook();
     let e0 = (*keys).ptr as *mut Entry;
     let hdr = (*e0).hdr;
     let k = match hdr_mask(hdr) { 1 => 0usize, 2 => 1usize, _ => return orig(target, keys) };
@@ -587,13 +592,33 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
         if h.last_fwd.map_or(true, |t| now.duration_since(t).as_secs() >= 20) {
             if h.fwd > 0 { host_stats(&h, "match end"); }
             *h = Host { level: floor, last_step: [0; 2], win_step0: [0; 2], tot_lost: 0.0, tot_exp: 0.0, fwd: 0,
-                        raised: 0, flushes: 0, win_start: Some(now), last_fwd: None };
+                        raised: 0, flushes: 0, win_start: Some(now), last_fwd: None, sid: h.sid,
+                        sent: [VecDeque::new(), VecDeque::new()], rtt: [Vec::new(), Vec::new()] };
             log(&format!("host: forwarding started, delay +{floor}"));
         }
         h.last_fwd = Some(now);
         h.fwd += 1;
         if step + 600 < h.last_step[k] { h.win_step0[k] = 0; } // fighter's frames restarted (new round/match)
         h.last_step[k] = step;
+        // which fighter this is on Steam: UE handles each packet right after reading it
+        if let Ok(n) = NET.try_lock() { if n.last_read_sid != 0 { h.sid[k] = n.last_read_sid; } }
+        // fighter k's input frontier, as forwarded now to the other fighter
+        let mut fe = 0u32;
+        for i in 0..((*keys).num.min(64) as usize) {
+            let e = &*(((*keys).ptr as *const u8).add(i * 32) as *const Entry);
+            if hdr_mask(e.hdr) == 1 << k { fe = fe.max(hdr_frame(e.hdr)); }
+        }
+        if h.sent[k].back().map_or(true, |b| fe > b.0) { h.sent[k].push_back((fe, now)); }
+        while h.sent[k].len() > 600 { h.sent[k].pop_front(); }
+        // round trip estimate for fighter k: k can step frame `step` only once the other fighter's input for it
+        // arrived, so (now - when the host forwarded that input to k) >= host->k->host time; the low end of these
+        // samples (k waiting on that input) is about the round trip plus up to a frame on each side
+        let j = 1 - k;
+        if let Some(&(_, t)) = h.sent[j].iter().find(|x| x.0 >= step) {
+            let ms = now.duration_since(t).as_secs_f32() * 1000.0;
+            if ms < 2000.0 && h.rtt[k].len() < 8192 { h.rtt[k].push(ms); }
+        }
+        while h.sent[j].front().map_or(false, |x| x.0 + 120 < step) { h.sent[j].pop_front(); }
         if h.win_step0[k] == 0 && step > warmup { h.win_step0[k] = step; }
         let dt = h.win_start.map_or(0.0, |t| now.duration_since(t).as_secs_f32());
         if dt >= HOST_WINDOW_S {
@@ -614,7 +639,7 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
             }
             h.win_start = Some(now);
         }
-        if h.fwd % (every * 2) == 0 { host_stats(&h, "periodic"); }
+        if h.fwd % (every * 2) == 0 { host_stats(&h, "periodic"); net_stats(&mut h); }
         want = h.level;
     }
     // The game's own count (target ctrl+0x920) climbs during loading and the intro, where everyone waits anyway
@@ -639,6 +664,138 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
         }
     }
     r
+}
+
+
+// ---------------------------------------------------------------- host-side network measurement (logs only)
+// The game's net driver is UE's SteamNetDriver on the old ISteamNetworking P2P API (SDK 1.57, SteamNetworking006).
+// We wrap SendP2PPacket (vtable slot 0) and ReadP2PPacket (slot 2) of that interface to count traffic per remote,
+// learn which SteamID each fighter is (the packet read just before a forward came from that fighter: UE handles each
+// packet right after reading it), time the host's receive bursts (UE reads P2P packets once per host frame), and ask
+// GetP2PSessionState whether Steam relays the connection. Nothing is changed: the wrappers call the originals.
+#[derive(Default, Clone, Copy)]
+struct Remote { sid: u64, pin: u64, bin: u64, pout: u64, bout: u64 }
+struct Net {
+    remotes: Vec<Remote>,
+    last_read_sid: u64,
+    last_read: Option<std::time::Instant>,
+    burst_gaps: Vec<f32>, // ms between the starts of read bursts = host frame spacing as seen by the receive path
+    burst_start: Option<std::time::Instant>,
+}
+static NET: Mutex<Net> = Mutex::new(Net { remotes: Vec::new(), last_read_sid: 0, last_read: None, burst_gaps: Vec::new(),
+    burst_start: None });
+static mut NET_IFACE: usize = 0;
+static mut ORIG_P2P_SEND: usize = 0;
+static mut ORIG_P2P_READ: usize = 0;
+static mut P2P_STATE: usize = 0;
+static NET_TRIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+type P2PSend = unsafe extern "system" fn(usize, u64, *const u8, u32, i32, i32) -> u8;
+type P2PRead = unsafe extern "system" fn(usize, *mut u8, u32, *mut u32, *mut u64, i32) -> u8;
+#[repr(C)]
+#[derive(Default)]
+struct P2PState { active: u8, connecting: u8, error: u8, relay: u8, bytes_q: i32, pkts_q: i32, ip: u32, port: u16 }
+
+fn remote(n: &mut Net, sid: u64) -> &mut Remote {
+    if let Some(i) = n.remotes.iter().position(|r| r.sid == sid) { return &mut n.remotes[i]; }
+    n.remotes.push(Remote { sid, ..Default::default() });
+    n.remotes.last_mut().unwrap()
+}
+
+unsafe extern "system" fn hook_p2p_send(this: usize, sid: u64, data: *const u8, len: u32, mode: i32, ch: i32) -> u8 {
+    if let Ok(mut n) = NET.try_lock() { let r = remote(&mut n, sid); r.pout += 1; r.bout += len as u64; }
+    let f: P2PSend = std::mem::transmute(ORIG_P2P_SEND);
+    f(this, sid, data, len, mode, ch)
+}
+
+unsafe extern "system" fn hook_p2p_read(this: usize, dest: *mut u8, cap: u32, size: *mut u32, sid: *mut u64, ch: i32) -> u8 {
+    let f: P2PRead = std::mem::transmute(ORIG_P2P_READ);
+    let ok = f(this, dest, cap, size, sid, ch);
+    if ok != 0 && !sid.is_null() {
+        if let Ok(mut n) = NET.try_lock() {
+            let now = std::time::Instant::now();
+            // a pause of over 4 ms since the last read starts a new burst (the next host frame)
+            if n.last_read.map_or(true, |t| now.duration_since(t).as_secs_f32() > 0.004) {
+                if let Some(b) = n.burst_start {
+                    let g = now.duration_since(b).as_secs_f32() * 1000.0;
+                    if n.burst_gaps.len() < 4096 { n.burst_gaps.push(g); }
+                }
+                n.burst_start = Some(now);
+            }
+            n.last_read = Some(now);
+            let id = *sid;
+            n.last_read_sid = id;
+            let r = remote(&mut n, id);
+            r.pin += 1;
+            if !size.is_null() { r.bin += *size as u64; }
+        }
+    }
+    ok
+}
+
+/// Wrap the ISteamNetworking vtable once (first host forward, when Steam is surely up).
+unsafe fn net_hook() {
+    use std::sync::atomic::Ordering;
+    if NET_TRIED.swap(true, Ordering::SeqCst) { return; }
+    let m = GetModuleHandleA(b"steam_api64.dll\0".as_ptr());
+    if m.is_null() { log("host net: steam_api64.dll not loaded"); return; }
+    let (Some(get), Some(state)) = (GetProcAddress(m, b"SteamAPI_SteamNetworking_v006\0".as_ptr()),
+                                    GetProcAddress(m, b"SteamAPI_ISteamNetworking_GetP2PSessionState\0".as_ptr())) else {
+        log("host net: no SteamNetworking006 in steam_api64.dll"); return;
+    };
+    let get: unsafe extern "C" fn() -> usize = std::mem::transmute(get);
+    let iface = get();
+    if iface == 0 { log("host net: SteamNetworking() is null"); return; }
+    let vt = *(iface as *const usize);
+    let mut old: PAGE_PROTECTION_FLAGS = 0;
+    if VirtualProtect(vt as *const c_void, 24, PAGE_EXECUTE_READWRITE, &mut old) == 0 { log("host net: vtable not writable"); return; }
+    ORIG_P2P_SEND = *(vt as *const usize);
+    ORIG_P2P_READ = *((vt + 16) as *const usize);
+    *(vt as *mut usize) = hook_p2p_send as *const () as usize;
+    *((vt + 16) as *mut usize) = hook_p2p_read as *const () as usize;
+    VirtualProtect(vt as *const c_void, 24, old, &mut old);
+    NET_IFACE = iface;
+    P2P_STATE = state as usize;
+    log(&format!("host net: watching SteamNetworking006 at {iface:#x}"));
+}
+
+/// One line per fighter: Steam route, traffic since the last line, host-side round trip estimate; plus host frame spacing.
+fn net_stats(h: &mut Host) {
+    let mut lines = Vec::new();
+    if let Ok(mut n) = NET.lock() {
+        for k in 0..2 {
+            let sid = h.sid[k];
+            let mut rtt = std::mem::take(&mut h.rtt[k]);
+            rtt.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let q = |p: f32| if rtt.is_empty() { -1.0 } else { rtt[((rtt.len() - 1) as f32 * p) as usize] };
+            let mut route = String::from("route ?");
+            if sid != 0 && unsafe { P2P_STATE != 0 && NET_IFACE != 0 } {
+                let mut st = P2PState::default();
+                let f: unsafe extern "C" fn(usize, u64, *mut P2PState) -> u8 = unsafe { std::mem::transmute(P2P_STATE) };
+                if unsafe { f(NET_IFACE, sid, &mut st) } != 0 {
+                    // other players' addresses: keep only the first two octets (enough to tell relay/LAN/ISP apart)
+                    route = format!("{} active {} err {} queued {}B/{}p remote {}.{}.x.x",
+                        if st.relay != 0 { "RELAY" } else { "direct" }, st.active, st.error, st.bytes_q, st.pkts_q,
+                        st.ip >> 24, (st.ip >> 16) & 255);
+                } else { route = "route: no P2P session".into(); }
+            }
+            let r = n.remotes.iter().find(|r| r.sid == sid).copied().unwrap_or_default();
+            // no SteamIDs in the log (people share it): a short tag that only tells fighters apart within one log
+            let tag = if sid == 0 { 0 } else { (sid.wrapping_mul(0x9e3779b97f4a7c15) >> 48) as u16 };
+            lines.push(format!("host net fighter {k} id {tag:04x} {route} in {}p/{}B out {}p/{}B rtt_est ms min {:.0} p10 {:.0} med {:.0} ({} samples)",
+                r.pin, r.bin, r.pout, r.bout, q(0.0), q(0.1), q(0.5), rtt.len()));
+        }
+        let others = n.remotes.iter().filter(|r| r.sid != h.sid[0] && r.sid != h.sid[1]).count();
+        let mut g = std::mem::take(&mut n.burst_gaps);
+        g.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        if !g.is_empty() {
+            let q = |p: f32| g[((g.len() - 1) as f32 * p) as usize];
+            lines.push(format!("host net frames: receive bursts every med {:.1} ms p90 {:.1} max {:.1} ({} bursts), other remotes {others}",
+                q(0.5), q(0.9), g[g.len() - 1], g.len()));
+        }
+        for r in n.remotes.iter_mut() { r.pin = 0; r.bin = 0; r.pout = 0; r.bout = 0; }
+    }
+    for l in lines { log(&l); }
 }
 
 fn host_stats(h: &Host, why: &str) {
