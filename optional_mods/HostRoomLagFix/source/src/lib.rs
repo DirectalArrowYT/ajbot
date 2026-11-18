@@ -18,7 +18,9 @@
 //! own arrays, it only forwards the fighters' unchanged (their byte is always 0), so the fighters stay at 6 frames
 //! against two network legs. The host hook on the ClientTransitKeyHistory send wrapper writes the delay it wants
 //! into the forwarded copy (the receiver keeps the max, so both fighters converge on it), raising it while the
-//! fighters keep stalling (seen as repeated step frames in their packets), and flushes the connection right after.
+//! fighters keep stalling (step rate below 60/s after a warmup that skips loading and the intro, at most host_max),
+//! and flushes the connection right after. The game's own count is not passed on by default (host_game=1 does):
+//! it climbs during loading, when everyone waits anyway, and a raised delay can't be lowered within a match.
 //!
 //! Transports: UDP (`peer=ip:port` lines in ajdirect.ini, `listen=port`) and Steam networking messages to Steam
 //! friends who are playing AJ (`steam=1`, default on).
@@ -256,11 +258,12 @@ fn identity(id: u64) -> [u8; 136] {
 
 // ---------------------------------------------------------------- state
 struct Cfg { enabled: bool, steam: bool, listen: u16, peers: Vec<SocketAddr>, steam_peers: Vec<u64>, stats_every: u64,
-             host: bool, host_floor: u8, host_max: u8, host_flush: bool, host_up_pct: u32 }
+             host: bool, host_floor: u8, host_max: u8, host_flush: bool, host_up_pct: u32, host_game: bool, host_warmup: u32 }
 
 fn read_cfg() -> Cfg {
     let mut c = Cfg { enabled: true, steam: true, listen: 7790, peers: vec![], steam_peers: vec![], stats_every: 600,
-                      host: true, host_floor: 0, host_max: 10, host_flush: true, host_up_pct: 5 };
+                      host: true, host_floor: 0, host_max: 4, host_flush: true, host_up_pct: 5, host_game: false,
+                      host_warmup: 1200 };
     if let Ok(t) = std::fs::read_to_string(exe_dir().join(format!("{}.ini", stem()))) {
         for line in t.lines() {
             let line = line.trim();
@@ -279,6 +282,8 @@ fn read_cfg() -> Cfg {
                 "host_max" => c.host_max = v.parse().unwrap_or(c.host_max).min(24),
                 "host_flush" => c.host_flush = v != "0",
                 "host_up_pct" => c.host_up_pct = v.parse().unwrap_or(c.host_up_pct).clamp(1, 100),
+                "host_game" => c.host_game = v != "0",
+                "host_warmup" => c.host_warmup = v.parse().unwrap_or(c.host_warmup),
                 _ => {}
             }
         }
@@ -558,15 +563,14 @@ struct Host {
 }
 static HOST: Mutex<Host> = Mutex::new(Host { level: 0, last_step: [0; 2], win_step0: [0; 2], tot_lost: 0.0,
     tot_exp: 0.0, fwd: 0, raised: 0, flushes: 0, win_start: None, last_fwd: None });
-static HOST_CFG: Mutex<Option<(bool, u8, u8, bool, u32, u64)>> = Mutex::new(None);
+static HOST_CFG: Mutex<Option<(bool, u8, u8, bool, u32, u64, bool, u32)>> = Mutex::new(None);
 
 const HOST_WINDOW_S: f32 = 2.0;  // stall ratio measured over this long before raising
-const HOST_WARMUP: u32 = 300;    // ignore the first 5 s of a match (loading, both sides connecting)
 
 unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize {
     let orig: Fn2 = std::mem::transmute(ORIG_FWD);
     let cfg = HOST_CFG.lock().ok().and_then(|g| *g);
-    let Some((on, floor, max, flush, up_pct, every)) = cfg else { return orig(target, keys) };
+    let Some((on, floor, max, flush, up_pct, every, game, warmup)) = cfg else { return orig(target, keys) };
     if !on || keys.is_null() || target.is_null() || (*keys).num <= 0 || (*keys).ptr.is_null() {
         return orig(target, keys);
     }
@@ -590,7 +594,7 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
         h.fwd += 1;
         if step + 600 < h.last_step[k] { h.win_step0[k] = 0; } // fighter's frames restarted (new round/match)
         h.last_step[k] = step;
-        if h.win_step0[k] == 0 && step > HOST_WARMUP { h.win_step0[k] = step; }
+        if h.win_step0[k] == 0 && step > warmup { h.win_step0[k] = step; }
         let dt = h.win_start.map_or(0.0, |t| now.duration_since(t).as_secs_f32());
         if dt >= HOST_WINDOW_S {
             // each fighter should step 60 frames a second (fixed frame rate); the shortfall is time spent stalled
@@ -613,8 +617,10 @@ unsafe extern "system" fn hook_fwd(target: *mut u8, keys: *const TArr) -> usize 
         if h.fwd % (every * 2) == 0 { host_stats(&h, "periodic"); }
         want = h.level;
     }
-    // what the target controller's own logic asks for is a lower bound; the game caps it at 24
-    let own = *target.add(OFF_ADDCOUNT);
+    // The game's own count (target ctrl+0x920) climbs during loading and the intro, where everyone waits anyway
+    // (a real room reached +9 that way), and can never be lowered within a match. So by default only our own
+    // level, measured after the warmup and capped at host_max, is passed on; host_game=1 also passes the game's.
+    let own = if game { *target.add(OFF_ADDCOUNT) } else { 0 };
     let b3 = (e0 as *mut u8).add(3);
     let cur = *b3;
     let out = cur.max(want).max(own).min(24);
@@ -712,9 +718,11 @@ fn setup() -> String {
         }
     } else { None };
     notes.push(format!("enabled {} steam {} peers {:?} steam_peers {:?}", cfg.enabled, cfg.steam, cfg.peers, cfg.steam_peers));
-    notes.push(format!("host {} floor +{} max +{} flush {} up_pct {}", cfg.host, cfg.host_floor, cfg.host_max, cfg.host_flush, cfg.host_up_pct));
+    notes.push(format!("host {} floor +{} max +{} flush {} up_pct {} game {} warmup {}", cfg.host, cfg.host_floor, cfg.host_max,
+        cfg.host_flush, cfg.host_up_pct, cfg.host_game, cfg.host_warmup));
     if let Ok(mut g) = HOST_CFG.lock() {
-        *g = Some((cfg.enabled && cfg.host, cfg.host_floor, cfg.host_max.max(cfg.host_floor), cfg.host_flush, cfg.host_up_pct, cfg.stats_every));
+        *g = Some((cfg.enabled && cfg.host, cfg.host_floor, cfg.host_max.max(cfg.host_floor), cfg.host_flush, cfg.host_up_pct, cfg.stats_every,
+                  cfg.host_game, cfg.host_warmup));
     }
     let st = St {
         cfg, udp, steam: None, steam_cands: vec![], ctrl: 0, own_k: None, own: Rec::default(),

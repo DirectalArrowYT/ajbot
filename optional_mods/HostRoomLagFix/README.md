@@ -25,11 +25,16 @@ packet costs nothing.
 Installed on a host that spectates, the mod does two things each time the host forwards a fighter's inputs:
 
 - **It sends them right away** instead of at the end of the host's frame.
-- **It tells both fighters to use more input delay when they keep stalling.** The game already has this setting
-  and raises it on its own, but a spectating host never passes it on, so the fighters stay at the minimum. The mod
-  passes the host's value on, and adds a little more if the fighters still stall (at most `host_max` frames).
+- **It tells both fighters to use a little more input delay when they keep stalling in the fight.** The game has
+  this setting, but a spectating host never passes it on, so the fighters stay at the minimum. The mod measures
+  the fighters' stalls after loading and the intro, and adds 1 frame at a time, at most `host_max` (4) frames.
+  A raised delay can't be lowered until the match ends.
 
-The cost is a few frames more input delay while the connection is slow, instead of the match pausing. When the host
+The cost is a few frames more input delay on a slow connection, instead of the match pausing.
+
+The game also raises its own value on the host, but mostly during loading and the intro, where everyone waits
+anyway: in a real room it reached 9 extra frames that way, which felt like input lag. The mod doesn't pass that value
+on unless `host_game=1`. When the host
 fights, or the fighters have the mod, host mode changes nothing that matters: the direct copy still arrives first.
 
 The host's log shows a `host stats[...]` line every 1200 forwards:
@@ -86,7 +91,12 @@ Host mode, with the mod **only on the host** (fighters without it):
 | 80 ms | on | 1.0% | 167 | 12-13 frames |
 | 80 ms | on, `host_flush=0` | 1.6% | 193 | 12 frames |
 
-Most of the gain comes from the input delay reaching the fighters; sending right away adds a little.
+Most of the gain comes from the input delay reaching the fighters; sending right away adds a little. These runs
+used the first version, which also passed the game's own value on (`host_game=1` now).
+
+In a real room (host only, Steam), that first version left almost no lag but noticeable input lag: the fighters
+ended on 15 frames, 9 of them from the game's own value. The current version passes on only its own value. It
+hasn't been tested yet.
 
 Not tested yet:
 - **Between real PCs over Steam.** The test above sent the direct inputs over a local connection. The Steam path
@@ -105,10 +115,12 @@ Not tested yet:
 | `listen=<port>` | 7790 | UDP port for `peer=` |
 | `stats_every=<frames>` | 600 | how often the stats line is logged |
 | `host=0` | 1 | turn host mode off |
-| `host_max=<frames>` | 10 | most extra input delay host mode may add (the game's own limit is 18 extra) |
+| `host_max=<frames>` | 4 | most extra input delay host mode may add (the game's own limit is 18 extra) |
 | `host_floor=<frames>` | 0 | extra input delay host mode always adds |
 | `host_up_pct=<percent>` | 5 | add 1 frame when a fighter stalls at least this much over 2 seconds |
 | `host_flush=0` | 1 | don't send forwarded inputs right away |
+| `host_warmup=<frames>` | 1200 | ignore stalls in a fighter's first frames of a match (loading and intro) |
+| `host_game=1` | 0 | also pass on the game's own input delay (smoother, but more input lag) |
 
 ## How it works / build from source
 
