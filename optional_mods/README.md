@@ -10,7 +10,7 @@ All of them are unsigned paks, so the game needs the UniversalSigBypasser (the s
 |---|---|---|---|
 | `StageExpand` | `zzz_StageExpand_P.*` | done | 5x4 free-battle stage select: 19 stages plus Random |
 | `DeluxeEdition` | - | moved | Moved to its own private repo, `AJ-DeluxeEdition` (2026-11-19). Install and update notes are in its README. |
-| `ShigarakiBS_Pl15` | `zzz_Pl15_P.*`, `zzz_Pl15loose_P.*` | WIP | OJ2 Shigaraki (black-suit/Pl15) as a playable character. Known issues: broken hand vertices, the get-up ("rising") doesn't work, the customize menu is wrong. |
+| `ShigarakiBS_Pl15` | - | moved | Moved to the private `AJ-DeluxeEdition` repo (2026-11-19). |
 | `IntelSyncFix` | `ajfpfix.asi`, `Optional for AMD users/ajfpfix_intelmath.asi` | test | **Not a pak.** Fixes online desyncs between Intel and AMD PCs. One player per match copies one file into `HeroGame/Binaries/Win64/` (needs the ASI loader): the Intel player `ajfpfix.asi`, or the AMD player `Optional for AMD users/ajfpfix_intelmath.asi`. See `IntelSyncFix/README.md`. |
 | `HostRoomLagFix` | `ajdirect.asi` | test | **Not a pak.** Less lag in rooms where the host only spectates: the two fighters send their inputs straight to each other instead of only through the host. Both fighters (Steam friends) copy it into `HeroGame/Binaries/Win64/` (needs the ASI loader). On the host it adds a fallback that helps even when the fighters don't have it (a little more input delay instead of pauses). Tested on one PC only, not yet in a real room. See `HostRoomLagFix/README.md`. |
 
