@@ -45,3 +45,4 @@ tools/iconextract/bin/
 tools/iconextract/obj/
 *.exe.old
 combos/.drill.lock
+optional_mods/DeluxeEdition/source/target/

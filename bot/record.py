@@ -83,12 +83,14 @@ def main():
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f"  writing {path}")
         tracker.recording = path
-        return path.open("w", encoding="utf-8")
+        from ajbot.recguard import RecGuard
+        return RecGuard(path.open("w", encoding="utf-8"), path)
 
     def finish_match():
         nonlocal out
         if out:
-            out.close()
+            if not out.close():
+                tracker.recording = None   # discarded: nothing to point at
             out = None
         s = tracker.commit()
         if s:
@@ -196,7 +198,7 @@ def main():
                        "action": me.get("cmd"),
                        "lever": [me.get("lang"), me.get("lscale"), me.get("lon")]}
                 if out:
-                    out.write(json.dumps(rec) + "\n")
+                    out.write_rec(rec)
                     hb.wrote()
                 n += 1
                 cmd = me.get("cmd")

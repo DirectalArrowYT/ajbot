@@ -80,6 +80,13 @@ def parse_args():
     ap.add_argument("--online", action="store_true",
                     help="online lobby: the bot is Player 1 (implies --p1) and "
                          "waits as long as it takes for the opponent to lock in")
+    ap.add_argument("--auto-rematch", action="store_true",
+                    help="online: after each match, press through the result "
+                         "screen to Rematch (A on results, A on Rematch) and keep "
+                         "pressing it a few times while the opponent decides")
+    ap.add_argument("--rematch-wait", type=float, default=18.0,
+                    help="seconds from the match end (victory pose) to the "
+                         "first press on the result screen")
     ap.add_argument("--pick", metavar="A,B,C", default=None,
                     help="pick this team on character select first, then play")
     ap.add_argument("--pick-best", action="store_true",
@@ -252,6 +259,51 @@ def repick(pad, hook, roster, team, side):
     roster.pinned.clear()
     roster.assign(team, "mine")
     print(f"  locked in; pinned as mine: {', '.join(team)}")
+
+
+class AutoRematch:
+    """Online: press A through the result screen onto Rematch after a match.
+
+    The offline Continue screen has Rematch as its top option, where the
+    cursor starts (ajbot/autoloop.py rematch); online is assumed to match.
+    So: wait out the victory pose, then A (results -> Continue), A (Rematch),
+    and a few more spaced A presses in case one landed while a screen was
+    still sliding in. It never presses while character select is up (that is
+    the re-pick's job, or the player's) and stops once the next match starts.
+    """
+    GAP_S = 5.0          # between presses: screens slide in, the peer answers
+    PRESSES = 5          # results A + Rematch A + three retries
+
+    def __init__(self, pad, hook, side, wait_s):
+        self.pad, self.hook, self.side, self.wait_s = pad, hook, side, wait_s
+        self.due = None      # monotonic time of the next press, None = idle
+        self.left = 0
+        self.count = 0       # rematches asked for this session
+
+    def match_ended(self):
+        self.due = time.monotonic() + self.wait_s
+        self.left = self.PRESSES
+        print(f"  auto rematch: pressing Rematch in {self.wait_s:.0f}s")
+
+    def match_started(self):
+        self.due = None
+
+    def tick(self):
+        if self.due is None or time.monotonic() < self.due:
+            return
+        if select_visible(self.hook, self.side):
+            print("  auto rematch: character select is up - not pressing")
+            self.due = None
+            return
+        from ajbot.pad import CONFIRM
+        self.pad.tap(CONFIRM, hold_frames=6, gap_frames=9)
+        self.left -= 1
+        if self.left == self.PRESSES - 2:
+            self.count += 1
+            print(f"  auto rematch: Rematch pressed (#{self.count})")
+        self.due = time.monotonic() + self.GAP_S if self.left > 0 else None
+        if self.due is None:
+            print("  auto rematch: done pressing - waiting for the match")
 
 
 def main():
@@ -443,7 +495,8 @@ def main():
         path.parent.mkdir(parents=True, exist_ok=True)
         print(f"  recording to {path}")
         tracker.recording = path
-        return path.open("w", encoding="utf-8")
+        from ajbot.recguard import RecGuard
+        return RecGuard(path.open("w", encoding="utf-8"), path)
 
     tracker = MatchTracker(mode="bot", model=args.model, write=not args.no_stats)
     hb = Heartbeat(enabled=not args.no_record)
@@ -454,7 +507,8 @@ def main():
         """Close the match's recording and write its stats line."""
         nonlocal out
         if out:
-            out.close()
+            if not out.close():
+                tracker.recording = None   # discarded: nothing to point at
             out = None
         extra = {"actions": dict(match_taken),
                  "team_picked": team_pick or None,
@@ -494,6 +548,8 @@ def main():
     # Online always drives Player 1 (--online implies --p1); otherwise the
     # side character select measured.
     my_side = "1P" if args.online else (picked_side or "1P")
+    rematcher = (AutoRematch(pad, hook, my_side, args.rematch_wait)
+                 if pad and args.online and args.auto_rematch else None)
 
     def plan_repick(s):
         nonlocal pending
@@ -533,6 +589,8 @@ def main():
                 stall_since = stall_since or time.time()
                 if tracker.stalled(time.time() - stall_since) == "ended":
                     finish_match()
+                    if rematcher:
+                        rematcher.match_ended()
                 if pending and select_visible(hook, my_side):
                     team, pending = pending, None
                     try:
@@ -542,6 +600,8 @@ def main():
                     except Exception as e:   # noqa: BLE001 - keep playing
                         print(f"  !! re-pick failed ({type(e).__name__}: {e}); "
                               f"playing whatever is picked")
+                if rematcher:
+                    rematcher.tick()
                 hb.idle("NO BATTLE (menus, loading or paused)", matches)
                 time.sleep(0.25)
                 nxt = time.perf_counter()
@@ -568,6 +628,8 @@ def main():
                     print("  (character select never showed - kept the old team)")
                     pending = None
                 matches += 1
+                if rematcher:
+                    rematcher.match_started()
                 print(f"\n=== match {matches} started ===")
                 if out:
                     out.close()
@@ -588,13 +650,18 @@ def main():
                 match_taken.clear()
             elif event == "ended":
                 finish_match()
-                print("  waiting for the next match (press nothing until then)")
+                if rematcher:
+                    rematcher.match_ended()
+                else:
+                    print("  waiting for the next match (press nothing until then)")
             if tracker.state != "live":
                 # Victory pose, result screen, menus: pressing buttons here
                 # would skip screens or navigate menus.
                 if pad:
                     pad.clear()
                     pad.tick(1)
+                if rematcher:
+                    rematcher.tick()   # its own timed presses
                 if time.time() - last_wait_diag >= 4.0:
                     last_wait_diag = time.time()
                     mine_n = [r.get("id", "?") for r in teams.get("mine") or []]
@@ -787,7 +854,7 @@ def main():
                 keep.update(mine_keys)
                 keep.update(theirs_keys)
                 chars = sampler.prune_stale(chars, keep)
-                out.write(json.dumps({
+                out.write_rec({
                     "t": round(time.time(), 3), "chars": chars,
                     "me": (me or {}).get("key"), "enemy": (en or {}).get("key"),
                     "mine": mine_keys,
@@ -801,7 +868,7 @@ def main():
                     "tag": did_tag, "escape": escaped, "resource": spent,
                     "defense": guarded, "bot": True,
                     **({"skill": round(skill.level, 3)} if skill else {}),
-                }) + "\n")
+                })
                 hb.wrote()
             hb.live(matches, tracker.recording if out else None,
                     (me or {}).get("key"), (en or {}).get("key"))

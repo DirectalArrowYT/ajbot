@@ -384,7 +384,8 @@ def permanent_defect(path, blind_limit=0.5):
     """Cached per recording (ajbot.tickcache) - see _permanent_defect."""
     from ajbot import tickcache
     n, reason = tickcache.cached_fact(path, f"defect{blind_limit:g}",
-                                      lambda p: list(_permanent_defect(p, blind_limit)), raw=True)
+                                      lambda p: list(_permanent_defect(p, blind_limit)), raw=True,
+                                      version=2)   # 2: resolve() repairs no-CPU runs
     return n, reason
 
 

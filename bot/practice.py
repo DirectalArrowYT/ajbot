@@ -23,9 +23,8 @@ the game itself with --launch. Each attempt:
 
 Timing search: the first step that fails gets its offset tried at 0, -2, +2,
 -4, +4 ... frames; an offset that gets further is kept and the search moves
-on to the next failing step. When no offset helps, the steps before it are
-re-tuned, walking back one at a time (their timing decides the state the
-next one is pressed from).
+on to the next failing step. When no offset helps, the step before it is
+re-tuned once (its timing decides the state the next one is pressed from).
 Once the whole route lands, it is repeated --confirm times; it is "down" when
 it lands at least --target of those. Results (offsets, best, success rate) go
 back into models/demo_routes.json under "learned", and every attempt to
@@ -622,7 +621,6 @@ def attempt(g, route, adj, lat, a):
     drift = None                  # stick angle kept held after a press
     grab_k = grab_seen = grab_rel = None   # waiting out a grab before step grab_k
     extra = []                    # [frame, step] more presses of a "Q2 (x3)" step
-    last_mash = -1                # "mash": N - press the step again every N frames until it registers
     prev_me = None
     fail_at = why = got = None
     dropped = False
@@ -782,14 +780,6 @@ def attempt(g, route, adj, lat, a):
                     drift = None
                     g.step(1)
                     continue
-        if w is not None and steps[w].get("mash") and not held \
-                and f - max(press_f[w], last_mash) >= max(int(steps[w]["mash"]), a.hold + 2):
-            buttons, stick = plan(steps[w], me, en)
-            g.pad.stick(stick)
-            g.pad.hold(*buttons)
-            held, release_at, last_mash = buttons, f + a.hold, f
-            g.step(1)
-            continue
         if extra and f >= extra[0][0] and not held:
             buttons, stick = plan(extra.pop(0)[1], me, en)
             g.pad.stick(stick)
@@ -937,16 +927,12 @@ class Search:
             return ""
         if self.tries:
             return ""
-        if self.focus > 0 and (self.back_from is None or self.focus > 1):
-            # Nothing at this step helped: re-tune the ones before it, walking
-            # back one at a time. A dropped chain shows at the first step that
-            # never came out, which can be well after the press that was late:
-            # Trench's buffered air A>A came out too late, the bot landed, and
-            # the chain broke two steps on, at Q2 (2026-11-16).
-            stuck = self.back_from if self.back_from is not None else self.focus
-            self._aim(self.focus - 1)
+        if self.back_from is None and self.focus > 0:
+            # Nothing at this step helped: re-tune the one before it once.
+            stuck = self.focus
+            self._aim(stuck - 1)
             self.back_from = stuck
-            return f"step {stuck} stuck - re-tuning step {self.focus}"
+            return f"step {stuck} stuck - re-tuning step {stuck - 1}"
         self.stuck = self.back_from if self.back_from is not None else self.focus
         return f"step {self.stuck} stuck at every offset"
 
@@ -1070,13 +1056,12 @@ def main():
         if not route:
             sys.exit(f"no saved demo route matches '{a.route}' (python -m ajbot.demo show)")
     # Notation/library routes: start from people's timing (notation.
-    # apply_human_gaps), not the fixed guesses - but only from the step the
-    # drill is stuck on: the steps it already gets past keep their timing and
-    # learned offsets (replacing those dropped every try at CA, 2026-11-16).
+    # apply_human_gaps), not the fixed guesses. Offsets learned on the old
+    # timing do not carry over onto the new one.
     if route.get("source") == "notation" or route.get("lib"):
-        # (the step before the stuck one is being tuned too: a late CA drops the Q2)
-        keep = 0 if a.fresh else int((route.get("learned") or {}).get("best") or 0) - 1
-        notation.apply_human_gaps(route, log=log, keep=keep)
+        if notation.apply_human_gaps(route, log=log) and route.get("learned"):
+            log("  timing changed: the offsets learned on the old timing start over")
+            route.pop("learned", None)
     steps = route["steps"]
     if any(s["label"] == "Tag" for s in steps):
         a.per_match = 1           # the point fighter changed: start over each time

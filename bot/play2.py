@@ -658,7 +658,7 @@ class Bot:
         if not self.out:
             return
         me, en = self.teams.get("me") or {}, self.teams.get("enemy") or {}
-        self.out.write(json.dumps({
+        self.out.write_rec({
             "t": round(time.time(), 3), "chars": chars,
             "me": me.get("key"), "enemy": en.get("key"),
             "mine": [c.get("key") for c in self.teams.get("mine") or []],
@@ -671,7 +671,7 @@ class Bot:
             "tag": self.did_tag, "escape": self.escaped, "resource": self.spent,
             "defense": self.defense_label,
             "bot": True, "side": self.tag, "selfplay": True,
-        }) + "\n")
+        })
 
     def health(self):
         """Remaining health per character on this bot's own side."""
@@ -769,7 +769,8 @@ def open_outputs(bots, args):
             # A second match inside the same second - never overwrite.
             path = prefix.with_name(f"{prefix.name}_{int(time.time()*1000)%1000}"
                                     f".{bot.tag.lower()}.jsonl")
-        bot.out = path.open("w", encoding="utf-8")
+        from ajbot.recguard import RecGuard
+        bot.out = RecGuard(path.open("w", encoding="utf-8"), path)
         bot.path = path
         print(f"recording {bot.tag} to {path}")
 
@@ -798,7 +799,8 @@ def close_outputs(bots, ticks):
             "hp_left_enemy": round(sum(theirs.values()), 3),
             "actions": dict(bot.taken),
         }) + "\n")
-        bot.out.close()
+        if not bot.out.close():
+            bot.path = None               # discarded: never showed fighting
         bot.out = None
     for bot in bots:
         bot.at_end = None

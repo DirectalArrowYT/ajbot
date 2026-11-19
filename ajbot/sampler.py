@@ -341,6 +341,77 @@ do
   end
 end
 
+-- Character-specific COUNTED resource (stocks, levels, charges), folded into
+-- one generic `charge` = count / max in 0..1, plus the raw `charge_n`. Like
+-- charmode, each is a native function on the character's own global table;
+-- names from the exported Lua, maxima from DB/Character/Player/PlNN/
+-- ActionParam.json (2026-11-18). Kinds:
+--   fn            count = tbl[fn](); max = tbl[maxfn]() if given, else `max`
+--   probe         no getter: count = largest n with tbl[fn](n) true
+--                 (Sato: IsConsumableSugarCounter(n) is "have >= n sugar")
+--   flags         count = how many of the listed bool getters are true
+-- `max_awk` replaces `max` while Awaking.IsStrongerUniqueAttack() (rising).
+A.charge = A.charge or {
+  Pl03  = {fn = 'GetFloatRockCount', maxfn = 'GetMaxRockCount', max = 4},  -- Uraraka: floating rubble (最大瓦礫数 4)
+  Pl20  = {fn = 'GetChargeLevel', max = 2},              -- Muscular ("ChargeLevelUp %d/2")
+  Pl25  = {fn = 'GetAvoidAttackMoveCount', max = 2},     -- Nejire: air avoids left (特殊回避回数 2)
+  Pl36  = {fn = 'GetShoulderLevel', max = 3},            -- Rappa: max NOT found in data, check live
+  Pl37  = {fn = 'GetSummonCount', max = 1},              -- Twice: clone summons (召喚可能回数 1)
+  Pl206 = {probe = 'IsConsumableSugarCounter', max = 5, max_awk = 7}, -- Sato: sugar (シュガーカウンター最大値 5 / 7)
+  Pl207 = {fn = 'GetLightPowerStock', max = 2},          -- Hagakure: light stocks (集光ストック最大値 2)
+  Pl208 = {fn = 'GetArmLevel', max = 2},                 -- Shoji: arm level (腕レベル上限 2)
+  Pl211 = {fn = 'GetReelCount', maxfn = 'GetMaxReelCount', max = 4}, -- Jeanist: reels set (リールの最大設置数 4)
+  Pl222 = {fn = 'GetHoldLevel', max = 2},                -- Lady Nagant: hold level
+  Pl225 = {flags = {'IsArmThird', 'IsLegThird'}, max = 2}, -- Deku (OFA): Fa Jin stored in arm / leg
+}
+local charge, charge_n = nil, nil
+do
+  local pid = id and id:match('^(Pl%d+)')
+  local spec = pid and A.charge[pid]
+  local tbl = spec and rawget(_G, id)
+  if type(tbl) == 'table' then
+    local function call(name, ...)
+      local fn = tbl[name]
+      if type(fn) ~= 'function' then return nil end
+      local ok5, v = pcall(fn, ...)
+      if ok5 then return v end
+      return nil
+    end
+    local mx = spec.max
+    if spec.max_awk and type(Awaking) == 'table' and type(Awaking.IsStrongerUniqueAttack) == 'function' then
+      local ok6, s = pcall(Awaking.IsStrongerUniqueAttack)
+      if ok6 and s then mx = spec.max_awk end
+    end
+    if spec.maxfn then
+      local m = call(spec.maxfn)
+      if type(m) == 'number' and m > 0 then mx = m end
+    end
+    local n = nil
+    if spec.fn then
+      local v = call(spec.fn)
+      if type(v) == 'number' then n = v end
+    elseif spec.probe then
+      if type(tbl[spec.probe]) == 'function' then
+        n = 0
+        for k = (spec.max_awk or mx), 1, -1 do
+          if call(spec.probe, k) then n = k break end
+        end
+      end
+    elseif spec.flags then
+      n = 0
+      for _, nm in ipairs(spec.flags) do
+        if call(nm) then n = n + 1 end
+      end
+    end
+    if n and mx and mx > 0 then
+      charge_n = n
+      local r = n / mx
+      if r > 1 then r = 1 elseif r < 0 then r = 0 end
+      charge = math.floor(r * 1000 + 0.5) / 1000
+    end
+  end
+end
+
 local f = {}
 local function put(k, v) if v ~= nil then f[#f + 1] = k .. '=' .. tostring(v) end end
 
@@ -425,6 +496,8 @@ put('grabbing', bit(state.IsGrab))
 put('armor_hit', bit(state.IsHitAttackToSuperArmor))
 put('proj_n', proj_n)
 put('char_mode', char_mode)
+put('charge', charge)
+put('charge_n', charge_n)
 -- Fires the instant our own attack connects (used by several characters'
 -- own combo-transition checks, e.g. ActionAttackMelee's air variant: "Attack.
 -- CheckAnimChangeCommand(...) and state.IsHitMyAttack()"). Distinct from

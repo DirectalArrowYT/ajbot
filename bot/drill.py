@@ -8,7 +8,6 @@
 
 Routes, longest first:
   * models/drill_routes.json - combos written by people, in combo notation
-    (or, with "steps", a hand-tuned route drilled exactly as written)
     (ajbot/notation.py), e.g. the Mirio route found by players:
         {"routes": [{"char": "Mirio", "name": "Mirio optimal",
                      "notation": "jump > AA > CA > Q2 (x2) > q4 > Q2 (x2) > q4 > pu"}]}
@@ -272,9 +271,6 @@ def candidates(a):
     if "notation" not in sources:
         written = []
     for w in written:
-        if w.get("steps"):               # a hand-tuned route (gaps, mash): drilled as written
-            add(dict(w), "written")
-            continue
         try:
             add(notation.route(w["notation"], w["char"], w.get("name")), "notation")
         except (notation.NotationError, KeyError) as e:
@@ -406,8 +402,6 @@ def worker(n, work, a, procs):
                 "--instance", str(n), "--launch", "--stop-file", str(STOP),
                 "--max-attempts", str(a.max_attempts), "--confirm", str(a.confirm),
                 "--speed", str(a.speed)]
-        if a.timeout:
-            argv += ["--timeout", str(a.timeout)]
         if a.record:
             argv += ["--record", a.record]
         log(f"copy {n}: {route['name']} ({route['char']}, {len(route['steps'])} steps)")
@@ -440,7 +434,6 @@ def main():
     ap.add_argument("--confirm", type=int, default=5)
     ap.add_argument("--gap", type=int, default=14, help="first-guess frames between mined steps")
     ap.add_argument("--speed", type=float, default=100)
-    ap.add_argument("--timeout", type=int, help="practice.py --timeout (frames a step may take to register)")
     ap.add_argument("--per-char", type=int, default=3,
                     help="true combos per character from the recordings")
     ap.add_argument("--corpus", default=str(HERE),

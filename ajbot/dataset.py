@@ -147,13 +147,15 @@ HISTORY_K = 5
 
 # Bumped whenever labelling or feature construction changes in a way that
 # ME_FIELDS alone would not reveal, so the cache rebuilds.
-FEATURE_VERSION = 20     # 15: act_n in bot-pump units, slow-mo block, Wait
+FEATURE_VERSION = 21     # 15: act_n in bot-pump units, slow-mo block, Wait
                          # 16: Wait also sampled in hitstun
                          # 17: game input-window block (movewindows)
                          # 18: route-progress block (routefeat)
                          # 19: wall block (wallfeat); movement head also
                          #     samples held sticks (HOLD_EVERY_S)
                          # 20: Wait also sampled mid-move (WAIT_MOVE_*)
+                         # 21: charge block (CHARGE_N): per-character
+                         #     counted resource, sampler `charge`
 
 # `act_n` counts sampler pumps since the act began, not time: 15-21 a second
 # in the bot's own runs, 20 in the old human runs and ~46 in the m3-m6 human
@@ -174,7 +176,11 @@ from .movewindows import N_FEATS as _WIN_N
 from .routefeat import N_FEATS as _ROUTE_N
 from .wallfeat import N_FEATS as _WALL_N
 SLOW_N = 7
-EXTRA_N = 18 + _OPP_N + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N
+# Character-specific counted resource as count/max in 0..1 (sampler.py
+# A.charge: Sato's sugar, Deku's Fa Jin, Hagakure's light stocks, Uraraka's
+# rubble...), me then enemy. 0 for characters without one. Last block.
+CHARGE_N = 2
+EXTRA_N = 18 + _OPP_N + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N + CHARGE_N
 
 # "Wait": not pressing anything new. Recordings only hold the moments a
 # button WAS pressed (0.3-0.7 a second), while live play asks the policy 15
@@ -344,6 +350,22 @@ def resolve(tick):
                     if r.get("age", 1e9) <= BENCH_AGE}
             mine = [k for k, r in live.items() if _flag(r) != cpu_flag]
             theirs = [k for k, r in live.items() if _flag(r) == cpu_flag]
+        elif not en and me in chars:
+            # No CPU on screen (a human, an online opponent, another bot), so
+            # nothing says which team is whose - but `me` does: the enemy flag
+            # still splits the fighters into two teams, and ours is the one
+            # `me` is on. The live roster had filed all six fighters as mine
+            # (theirs empty), which left 70%+ of such runs without an opponent.
+            my_flag = _flag(chars[me])
+            foes = [(k, r) for k, r in fresh.items() if _flag(r) != my_flag]
+            if foes:
+                en = min(foes, key=lambda kr: (0 if kr[1].get("lon") else 1,
+                                               1 if kr[1].get("sk") else 0,
+                                               kr[1].get("age", 1e9)))[0]
+                live = {k: r for k, r in chars.items()
+                        if r.get("age", 1e9) <= BENCH_AGE}
+                mine = [k for k, r in live.items() if _flag(r) == my_flag]
+                theirs = [k for k, r in live.items() if _flag(r) != my_flag]
 
     if not mine and not theirs:
         # Older recordings carry no team lists; the enemy flag is the same
@@ -769,6 +791,7 @@ def featurize(tick, actions, chars, prev_cmd=None, history=None, opp=None, route
     feats += _win_feats(me, en)
     feats += list(route) if route is not None else [0.0] * _ROUTE_N
     feats += list(wall) if wall is not None else [0.0] * _WALL_N
+    feats += [_num(me, "charge"), _num(en, "charge")]
     return np.array(feats, dtype=np.float32)
 
 
@@ -891,6 +914,7 @@ def feature_names(actions, chars):
     names += ROUTE_NAMES
     from .wallfeat import FEATURE_NAMES as WALL_NAMES
     names += WALL_NAMES
+    names += ["me.charge", "en.charge"]
     return names
 
 
@@ -903,7 +927,7 @@ def movement_persistence_cols(n_features=None):
         ns = len(ME_FIELDS) + len(ENEMY_FIELDS) + 2
         return ns, ns + 1, ME_FIELDS.index("lscale")
     from .oppmodel import N_FEATS
-    tail = N_FEATS + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N
+    tail = N_FEATS + SLOW_N + _WIN_N + _ROUTE_N + _WALL_N + CHARGE_N
     return n_features - 8 - tail, n_features - 7 - tail, ME_FIELDS.index("lscale")
 
 

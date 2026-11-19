@@ -1,3 +1,0 @@
-# Characters that get their OJ2 intro camera (PlNN number, one per line).
-# Each needs /Game/Sequencer/Player/PlNN/PlNN_ev010_cam in a pak mod.
-2

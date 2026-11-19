@@ -72,6 +72,8 @@ struct Settings {
     /// Online lobby picking: "best" (most confident), "counter" (vs the team
     /// last fought, re-picked every match) or "manual".
     online_pick: String,
+    /// Online lobby: press through the result screen to Rematch after each match.
+    online_rematch: bool,
     /// Bot vs Bot: policy for bot B ("" = same as bot A).
     model_b: String,
     /// Bot vs Bot with model_b, endless: swap sides every N matches (0 = never).
@@ -116,6 +118,7 @@ impl Default for Settings {
             auto_again_left: false,
             control_now: String::new(),
             online_pick: "best".into(),
+            online_rematch: true,
             model_b: String::new(),
             swap_every: 2,
             compare_on: true,
@@ -655,6 +658,9 @@ impl App {
                 let vs_human = self.mode == Mode::HumanVsBot;
                 if online {
                     a.push("--online".into());
+                    if s.online_rematch {
+                        a.push("--auto-rematch".into());
+                    }
                     match s.online_pick.as_str() {
                         "best" => a.extend(["--pick-best".into(), "--pick-start".into(), s.pick_start.clone()]),
                         "counter" => a.extend(["--pick-counter".into(), "--pick-start".into(), s.pick_start.clone()]),
@@ -914,6 +920,13 @@ impl App {
                                                 online opponent, or most confident if none.");
                             ui.radio_value(&mut s.online_pick, "manual".to_string(), "I pick");
                         });
+                        ui.checkbox(&mut s.online_rematch, "Auto rematch")
+                            .on_hover_text("After each match the bot presses A through the \
+                                            result screen onto Rematch (the top option), then \
+                                            a few more times while the opponent decides. It \
+                                            never presses at character select. A rematch keeps \
+                                            the same team; it only re-picks if the lobby goes \
+                                            back to character select.");
                     }
                     if self.mode == Mode::HumanVsBot || self.mode == Mode::OnlineLobby {
                         ui.add(egui::Slider::new(&mut s.hz, 5.0..=30.0).text("decisions/s"));
@@ -954,14 +967,26 @@ impl App {
                     "After each match it picks its most confident team again when character \
                      select comes back."
                 };
+                let later = if self.settings.online_rematch {
+                    format!("{later} With Auto rematch on it presses Rematch on the result \
+                             screen by itself (same team).")
+                } else {
+                    later.to_string()
+                };
                 ui.label(format!("Disconnect your own controller first so the bot's pad becomes \
                           Player 1. Get into the lobby's character select with the cursor on the \
                           start fighter, then Start - the bot picks, waits for the opponent, and \
                           plays. {later}"));
             } else {
-                ui.label("Disconnect your own controller first so the bot's pad becomes Player 1, \
-                          then start this. Nothing is pressed until a match loads - pick the \
-                          team in the lobby yourself; the bot plays match after match.");
+                let rematch = if self.settings.online_rematch {
+                    " After each match it presses Rematch on the result screen by itself."
+                } else {
+                    ""
+                };
+                ui.label(format!("Disconnect your own controller first so the bot's pad becomes \
+                          Player 1, then start this. Nothing is pressed until a match loads - \
+                          pick the team in the lobby yourself; the bot plays match after \
+                          match.{rematch}"));
             }
         } else if auto {
             ui.label("Endless mode: open the 2-player vs character select, then Start. Both bots pick random teams (Teams: Pick for me = the same teams every match) and rematch forever - every match is recorded and added to Statistics. Stop whenever you like.");
